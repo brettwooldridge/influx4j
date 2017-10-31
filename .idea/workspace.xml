@@ -2,14 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="f08cad9a-7640-4fd7-9095-6a011e29e13c" name="Default" comment="">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/com/zaxxer/influx4j/PointFactory.java" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/com/zaxxer/influx4j/util/PrimitiveArraySort.java" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/java/com/zaxxer/influx4j/util/Utf8.java" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/test/java/com/zaxxer/influx4j/LineProtocolTest.java" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/test/java/com/zaxxer/influx4j/FastValueToBufferTest.java" afterPath="$PROJECT_DIR$/src/test/java/com/zaxxer/influx4j/FastValue2BufferTest.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/main/java/com/zaxxer/influx4j/Point.java" afterPath="$PROJECT_DIR$/src/main/java/com/zaxxer/influx4j/Point.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/main/java/com/zaxxer/influx4j/util/FastValue2Buffer.java" afterPath="$PROJECT_DIR$/src/main/java/com/zaxxer/influx4j/util/FastValue2Buffer.java" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/main/java/com/zaxxer/influx4j/util/Utf8.java" afterPath="$PROJECT_DIR$/src/main/java/com/zaxxer/influx4j/util/Utf8.java" />
     </list>
     <ignored path="$PROJECT_DIR$/target/" />
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -21,27 +14,16 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="Point.java" pinned="false" current-in-tab="false">
+      <file leaf-file-name="Point.java" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/main/java/com/zaxxer/influx4j/Point.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-1469">
-              <caret line="69" column="0" lean-forward="true" selection-start-line="69" selection-start-column="0" selection-end-line="69" selection-end-column="0" />
+            <state relative-caret-position="51">
+              <caret line="69" column="0" lean-forward="false" selection-start-line="69" selection-start-column="0" selection-end-line="69" selection-end-column="0" />
               <folding>
                 <element signature="e#0#11094#0" expanded="true" />
                 <element signature="imports" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="LineProtocolTest.java" pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/src/test/java/com/zaxxer/influx4j/LineProtocolTest.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-1066">
-              <caret line="129" column="55" lean-forward="false" selection-start-line="129" selection-start-column="55" selection-end-line="129" selection-end-column="55" />
-              <folding>
-                <element signature="e#0#7296#0" expanded="true" />
-                <element signature="imports" expanded="true" />
+                <element signature="e#2561#2562#0" expanded="true" />
+                <element signature="e#2614#2615#0" expanded="true" />
               </folding>
             </state>
           </provider>
@@ -89,9 +71,9 @@
         <option value="$PROJECT_DIR$/src/test/java/com/zaxxer/influx4j/FastValue2BufferTest.java" />
         <option value="$PROJECT_DIR$/src/main/java/com/zaxxer/influx4j/util/FastValue2Buffer.java" />
         <option value="$PROJECT_DIR$/src/main/java/com/zaxxer/influx4j/PointFactory.java" />
-        <option value="$PROJECT_DIR$/src/main/java/com/zaxxer/influx4j/util/Utf8.java" />
         <option value="$PROJECT_DIR$/src/main/java/com/zaxxer/influx4j/Point.java" />
         <option value="$PROJECT_DIR$/src/test/java/com/zaxxer/influx4j/LineProtocolTest.java" />
+        <option value="$PROJECT_DIR$/src/main/java/com/zaxxer/influx4j/util/Utf8.java" />
       </list>
     </option>
   </component>
@@ -112,11 +94,10 @@
     <servers />
   </component>
   <component name="PhpWorkspaceProjectConfiguration" backward_compatibility_performed="true" />
-  <component name="ProjectFrameBounds" extendedState="6">
-    <option name="x" value="-2560" />
+  <component name="ProjectFrameBounds">
     <option name="y" value="23" />
-    <option name="width" value="2560" />
-    <option name="height" value="1417" />
+    <option name="width" value="1560" />
+    <option name="height" value="1102" />
   </component>
   <component name="ProjectInspectionProfilesVisibleTreeState">
     <entry key="Project Default">
@@ -457,6 +438,7 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
+      <pane id="Scratches" />
       <pane id="ProjectPane">
         <subPane>
           <expand>
@@ -526,7 +508,6 @@
       </pane>
       <pane id="PackagesPane" />
       <pane id="Scope" />
-      <pane id="Scratches" />
     </panes>
   </component>
   <component name="PropertiesComponent">
@@ -786,22 +767,20 @@
     </history-entry>
   </component>
   <component name="ToolWindowManager">
-    <frame x="-2560" y="23" width="2560" height="1417" extended-state="6" />
+    <frame x="0" y="23" width="1560" height="1102" extended-state="0" />
+    <editor active="true" />
     <layout>
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
-      <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32948422" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Buck" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Palette&#9;" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
       <window_info id="Maven Projects" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
-      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.32948422" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32948422" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32948422" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="IvyIDEA" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
-      <window_info id="CheckStyle" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Designer" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
-      <window_info id="Project" active="true" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.17990468" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
-      <window_info id="JProfiler" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.19301713" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
@@ -812,7 +791,10 @@
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
+      <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32948422" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
+      <window_info id="CheckStyle" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="JProfiler" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
     </layout>
   </component>
@@ -831,11 +813,37 @@
   <component name="editorHistoryManager">
     <entry file="file://$PROJECT_DIR$/src/main/java/com/zaxxer/influx4j/Point.java">
       <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="660">
+          <caret line="69" column="0" lean-forward="true" selection-start-line="69" selection-start-column="0" selection-end-line="69" selection-end-column="0" />
+          <folding>
+            <element signature="e#0#11094#0" expanded="true" />
+            <element signature="imports" expanded="true" />
+            <element signature="e#2561#2562#0" expanded="true" />
+            <element signature="e#2614#2615#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/test/java/com/zaxxer/influx4j/LineProtocolTest.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1560">
+          <caret line="129" column="55" lean-forward="false" selection-start-line="129" selection-start-column="55" selection-end-line="129" selection-end-column="55" />
+          <folding>
+            <element signature="e#0#7296#0" expanded="true" />
+            <element signature="imports" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/com/zaxxer/influx4j/Point.java">
+      <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="17">
           <caret line="1" column="62" lean-forward="false" selection-start-line="1" selection-start-column="62" selection-end-line="1" selection-end-column="62" />
           <folding>
             <element signature="e#0#11094#0" expanded="true" />
             <element signature="imports" expanded="true" />
+            <element signature="e#2561#2562#0" expanded="true" />
+            <element signature="e#2614#2615#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -869,6 +877,8 @@
           <folding>
             <element signature="e#0#11094#0" expanded="true" />
             <element signature="imports" expanded="true" />
+            <element signature="e#2561#2562#0" expanded="true" />
+            <element signature="e#2614#2615#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -891,6 +901,8 @@
           <folding>
             <element signature="e#0#11094#0" expanded="true" />
             <element signature="imports" expanded="true" />
+            <element signature="e#2561#2562#0" expanded="true" />
+            <element signature="e#2614#2615#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -902,6 +914,8 @@
           <folding>
             <element signature="e#0#11094#0" expanded="true" />
             <element signature="imports" expanded="true" />
+            <element signature="e#2561#2562#0" expanded="true" />
+            <element signature="e#2614#2615#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -929,27 +943,9 @@
         </state>
       </provider>
     </entry>
-    <entry file="jar:///Library/Java/JavaVirtualMachines/jdk1.8.0_131.jdk/Contents/Home/src.zip!/java/nio/HeapByteBuffer.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="459">
-          <caret line="371" column="16" lean-forward="false" selection-start-line="371" selection-start-column="16" selection-end-line="371" selection-end-column="16" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="jar:///Library/Java/JavaVirtualMachines/jdk1.8.0_131.jdk/Contents/Home/src.zip!/java/nio/StringCharBuffer.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="119">
-          <caret line="30" column="6" lean-forward="false" selection-start-line="30" selection-start-column="6" selection-end-line="30" selection-end-column="6" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="jar:///Library/Java/JavaVirtualMachines/jdk1.8.0_131.jdk/Contents/Home/src.zip!/java/nio/Bits.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="452">
-          <caret line="273" column="14" lean-forward="false" selection-start-line="273" selection-start-column="14" selection-end-line="273" selection-end-column="14" />
-        </state>
-      </provider>
-    </entry>
+    <entry file="jar:///Library/Java/JavaVirtualMachines/jdk1.8.0_131.jdk/Contents/Home/src.zip!/java/nio/HeapByteBuffer.java" />
+    <entry file="jar:///Library/Java/JavaVirtualMachines/jdk1.8.0_131.jdk/Contents/Home/src.zip!/java/nio/StringCharBuffer.java" />
+    <entry file="jar:///Library/Java/JavaVirtualMachines/jdk1.8.0_131.jdk/Contents/Home/src.zip!/java/nio/Bits.java" />
     <entry file="jar://$MAVEN_REPOSITORY$/junit/junit/4.11/junit-4.11.jar!/org/junit/internal/runners/model/ReflectiveCallable.class">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="238">
@@ -957,69 +953,14 @@
         </state>
       </provider>
     </entry>
-    <entry file="jar:///Library/Java/JavaVirtualMachines/jdk1.8.0_131.jdk/Contents/Home/src.zip!/java/lang/Class.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="640">
-          <caret line="1554" column="27" lean-forward="false" selection-start-line="1554" selection-start-column="19" selection-end-line="1554" selection-end-column="27" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="jar:///Library/Java/JavaVirtualMachines/jdk1.8.0_131.jdk/Contents/Home/src.zip!/java/lang/StringCoding.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="374">
-          <caret line="61" column="25" lean-forward="false" selection-start-line="61" selection-start-column="25" selection-end-line="61" selection-end-column="25" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="jar:///Library/Java/JavaVirtualMachines/jdk1.8.0_131.jdk/Contents/Home/src.zip!/java/util/Comparator.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-2389">
-          <caret line="108" column="17" lean-forward="false" selection-start-line="108" selection-start-column="17" selection-end-line="108" selection-end-column="17" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="jar:///Library/Java/JavaVirtualMachines/jdk1.8.0_131.jdk/Contents/Home/src.zip!/java/util/TimSort.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="4737">
-          <caret line="419" column="5" lean-forward="true" selection-start-line="419" selection-start-column="5" selection-end-line="419" selection-end-column="5" />
-          <folding>
-            <element signature="e#0#36056#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="jar:///Library/Java/JavaVirtualMachines/jdk1.8.0_131.jdk/Contents/Home/src.zip!/java/nio/ByteBuffer.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="281">
-          <caret line="578" column="31" lean-forward="false" selection-start-line="578" selection-start-column="31" selection-end-line="578" selection-end-column="31" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="jar:///Library/Java/JavaVirtualMachines/jdk1.8.0_131.jdk/Contents/Home/src.zip!/java/nio/Buffer.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="526">
-          <caret line="327" column="24" lean-forward="false" selection-start-line="327" selection-start-column="24" selection-end-line="327" selection-end-column="24" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="jar:///Library/Java/JavaVirtualMachines/jdk1.8.0_131.jdk/Contents/Home/src.zip!/java/util/ArrayList.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="339">
-          <caret line="552" column="16" lean-forward="false" selection-start-line="552" selection-start-column="16" selection-end-line="552" selection-end-column="16" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="jar:///Library/Java/JavaVirtualMachines/jdk1.8.0_131.jdk/Contents/Home/src.zip!/java/util/Arrays.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="400">
-          <caret line="1437" column="25" lean-forward="true" selection-start-line="1437" selection-start-column="25" selection-end-line="1437" selection-end-column="25" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
+    <entry file="jar:///Library/Java/JavaVirtualMachines/jdk1.8.0_131.jdk/Contents/Home/src.zip!/java/lang/Class.java" />
+    <entry file="jar:///Library/Java/JavaVirtualMachines/jdk1.8.0_131.jdk/Contents/Home/src.zip!/java/lang/StringCoding.java" />
+    <entry file="jar:///Library/Java/JavaVirtualMachines/jdk1.8.0_131.jdk/Contents/Home/src.zip!/java/util/Comparator.java" />
+    <entry file="jar:///Library/Java/JavaVirtualMachines/jdk1.8.0_131.jdk/Contents/Home/src.zip!/java/util/TimSort.java" />
+    <entry file="jar:///Library/Java/JavaVirtualMachines/jdk1.8.0_131.jdk/Contents/Home/src.zip!/java/nio/ByteBuffer.java" />
+    <entry file="jar:///Library/Java/JavaVirtualMachines/jdk1.8.0_131.jdk/Contents/Home/src.zip!/java/nio/Buffer.java" />
+    <entry file="jar:///Library/Java/JavaVirtualMachines/jdk1.8.0_131.jdk/Contents/Home/src.zip!/java/util/ArrayList.java" />
+    <entry file="jar:///Library/Java/JavaVirtualMachines/jdk1.8.0_131.jdk/Contents/Home/src.zip!/java/util/Arrays.java" />
     <entry file="file://$PROJECT_DIR$/src/main/java/com/zaxxer/influx4j/util/PrimitiveArraySort.java">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="459">
@@ -1049,41 +990,9 @@
         </state>
       </provider>
     </entry>
-    <entry file="jar:///Library/Java/JavaVirtualMachines/jdk1.8.0_131.jdk/Contents/Home/src.zip!/java/lang/String.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="287">
-          <caret line="734" column="48" lean-forward="false" selection-start-line="734" selection-start-column="29" selection-end-line="734" selection-end-column="48" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="jar:///Library/Java/JavaVirtualMachines/jdk1.8.0_131.jdk/Contents/Home/src.zip!/java/nio/charset/Charset.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="244">
-          <caret line="747" column="27" lean-forward="false" selection-start-line="747" selection-start-column="27" selection-end-line="747" selection-end-column="27" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="jar:///Library/Java/JavaVirtualMachines/jdk1.8.0_131.jdk/Contents/Home/src.zip!/java/nio/charset/CharsetDecoder.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1348">
-          <caret line="136" column="22" lean-forward="false" selection-start-line="136" selection-start-column="22" selection-end-line="136" selection-end-column="22" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/com/zaxxer/influx4j/util/Utf8.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="396">
-          <caret line="29" column="34" lean-forward="false" selection-start-line="29" selection-start-column="21" selection-end-line="29" selection-end-column="34" />
-          <folding>
-            <element signature="e#0#2975#0" expanded="true" />
-            <element signature="imports" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
+    <entry file="jar:///Library/Java/JavaVirtualMachines/jdk1.8.0_131.jdk/Contents/Home/src.zip!/java/lang/String.java" />
+    <entry file="jar:///Library/Java/JavaVirtualMachines/jdk1.8.0_131.jdk/Contents/Home/src.zip!/java/nio/charset/Charset.java" />
+    <entry file="jar:///Library/Java/JavaVirtualMachines/jdk1.8.0_131.jdk/Contents/Home/src.zip!/java/nio/charset/CharsetDecoder.java" />
     <entry file="file://$PROJECT_DIR$/src/main/java/com/zaxxer/influx4j/PointFactory.java">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="351">
@@ -1095,12 +1004,12 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/com/zaxxer/influx4j/Point.java">
+    <entry file="file://$PROJECT_DIR$/src/main/java/com/zaxxer/influx4j/util/Utf8.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-1469">
-          <caret line="69" column="0" lean-forward="true" selection-start-line="69" selection-start-column="0" selection-end-line="69" selection-end-column="0" />
+        <state relative-caret-position="405">
+          <caret line="27" column="81" lean-forward="false" selection-start-line="27" selection-start-column="81" selection-end-line="27" selection-end-column="81" />
           <folding>
-            <element signature="e#0#11094#0" expanded="true" />
+            <element signature="e#0#3113#0" expanded="true" />
             <element signature="imports" expanded="true" />
           </folding>
         </state>
@@ -1108,11 +1017,24 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/test/java/com/zaxxer/influx4j/LineProtocolTest.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-1066">
+        <state relative-caret-position="0">
           <caret line="129" column="55" lean-forward="false" selection-start-line="129" selection-start-column="55" selection-end-line="129" selection-end-column="55" />
           <folding>
             <element signature="e#0#7296#0" expanded="true" />
             <element signature="imports" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/com/zaxxer/influx4j/Point.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="51">
+          <caret line="69" column="0" lean-forward="false" selection-start-line="69" selection-start-column="0" selection-end-line="69" selection-end-column="0" />
+          <folding>
+            <element signature="e#0#11094#0" expanded="true" />
+            <element signature="imports" expanded="true" />
+            <element signature="e#2561#2562#0" expanded="true" />
+            <element signature="e#2614#2615#0" expanded="true" />
           </folding>
         </state>
       </provider>

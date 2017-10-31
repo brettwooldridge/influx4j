@@ -24,10 +24,12 @@ public class Utf8 {
     * method is equivalent to {@code string.getBytes(UTF_8).length}, but is more efficient in both
     * time and space.
     *
+    * @param sequence the CharSequence to measure
+    * @return the length in bytes of the UTF-8 representation of the CharSequence
     * @throws IllegalArgumentException if {@code sequence} contains ill-formed UTF-16 (unpaired
     *     surrogates)
     */
-   public static int encodedLength(CharSequence sequence) {
+   public static int encodedLength(final CharSequence sequence) {
       // Warning to maintainers: this implementation is highly optimized.
       int utf16Length = sequence.length();
       int utf8Length = utf16Length;
