@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017, Brett Wooldridge
+ * Copyright (c) 2017, Brett Wooldridge.  All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -53,7 +53,7 @@ public class FastValue2Buffer
            10000000000000000L,
            100000000000000000L,
            1000000000000000000L };
-           // 10000000000000000000L };  problem?
+   //      10000000000000000000L    -- too big for signed long
 
    private static final int NO_NEGATIVE_OFFSET = 0;
    private static final int NEGATIVE_OFFSET = 1;
@@ -72,7 +72,6 @@ public class FastValue2Buffer
       }
       else if (value == Long.MIN_VALUE) {
          buffer.put(LONG_MINVALUE_BYTES);
-         buffer.position(buffer.position() + 20);
          return;
       }
       else {

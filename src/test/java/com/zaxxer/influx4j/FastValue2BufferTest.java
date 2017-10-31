@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017, Brett Wooldridge
+ * Copyright (c) 2017, Brett Wooldridge.  All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,7 +25,8 @@ import java.nio.ByteBuffer;
 /**
  * Created by brettw on 2017/10/30.
  */
-public class FastValueToBufferTest {
+public class FastValue2BufferTest
+{
    @Test
    public void testLong2Buffer1Digit() {
       final ByteBuffer buffer = ByteBuffer.allocate(64);
