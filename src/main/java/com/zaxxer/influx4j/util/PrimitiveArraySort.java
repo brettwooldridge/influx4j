@@ -29,8 +29,7 @@ public class PrimitiveArraySort {
       int compare(int a, int b);
    }
 
-   public static void sort(int[] array, IntComparator c) {
-      final int len = array.length;
+   public static void sort(int[] array, final int len, IntComparator c) {
       if (len < 2) {
          return;
       }

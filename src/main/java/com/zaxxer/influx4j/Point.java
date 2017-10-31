@@ -34,17 +34,23 @@ import static com.zaxxer.influx4j.util.Utf8.encodedLength;
  */
 @SuppressWarnings("ALL")
 public class Point implements Poolable, AutoCloseable {
+   private final static int MAX_TAG_COUNT = Integer.getInteger("com.zaxxer.influx4j.maxTagCount", 64);
+
+   private final ParallelTagArrayComparator tagKeyComparator;
    private final AggregateBuffer buffer;
    private final ArrayList<String> tagKeys;
    private final ArrayList<String> tagValues;
+   private final int[] tagSort;
    private final Slot slot;
    private Long timestamp;
 
    Point(final Slot slot) {
       this.slot = slot;
-      this.tagKeys = new ArrayList<>();
+      this.tagKeys = new ArrayList<>(MAX_TAG_COUNT);
       this.tagValues = new ArrayList<>();
+      this.tagSort = new int[MAX_TAG_COUNT];
       this.buffer = new AggregateBuffer();
+      this.tagKeyComparator = new ParallelTagArrayComparator(tagKeys);
    }
 
    public Point tag(final String tag, final String value) {
@@ -99,14 +105,14 @@ public class Point implements Poolable, AutoCloseable {
       }
 
       if (!tagKeys.isEmpty()) {
-         final int[] sorted = new int[tagKeys.size()];
-         for (int i = 0; i < sorted.length; i++) {
-            sorted[i] = i;
+         final int tags = tagKeys.size();
+         for (int i = 0; i < tags; i++) {
+            tagSort[i] = i;
          }
 
-         PrimitiveArraySort.sort(sorted, new ParallelTagArrayComparator(tagKeys));
-         for (int i = 0; i < sorted.length; i++) {
-            final int ndx = sorted[i];
+         PrimitiveArraySort.sort(tagSort, tags, tagKeyComparator);
+         for (int i = 0; i < tags; i++) {
+            final int ndx = tagSort[i];
             buffer.serializeTag(tagKeys.get(ndx), tagValues.get(ndx));
          }
       }
@@ -156,19 +162,23 @@ public class Point implements Poolable, AutoCloseable {
        */
 
       private void serializeMeasurement(final String measurement) {
-         ensureTagBufferCapacity(encodedLength(measurement));
+         ensureTagBufferCapacity(measurement);
          escapeCommaSpace(measurement, tagsBuffer);
       }
 
       private void serializeTag(final String key, final String value) {
+         ensureTagBufferCapacity(2); // , and =
+
          tagsBuffer.put((byte) ',');
-         escapeTag(key);
+         escapeTagKeyOrValue(key);
          tagsBuffer.put((byte) '=');
-         escapeTag(value);
+         escapeTagKeyOrValue(value);
       }
 
       private void serializeStringField(final String field, final String value) {
-         addFieldSeparator(field);
+         ensureFieldBufferCapacity(3); // = and two "
+
+         addFieldSeparator();
          escapeFieldKey(field);
          dataBuffer.put((byte) '=');
          dataBuffer.put((byte) '"');
@@ -177,15 +187,20 @@ public class Point implements Poolable, AutoCloseable {
       }
 
       private void serializeLongField(final String field, final long value) {
-         addFieldSeparator(field);
+         ensureFieldBufferCapacity(3); // = and two "
+
+         addFieldSeparator();
          escapeFieldKey(field);
          dataBuffer.put((byte) '=');
+         ensureFieldBufferCapacity(21);
          writeLongToBuffer(value, dataBuffer);
          dataBuffer.put((byte) 'i');
       }
 
       private void serializeBooleanField(final String field, final boolean value) {
-         addFieldSeparator(field);
+         ensureFieldBufferCapacity(3); // = and two "
+
+         addFieldSeparator();
          escapeFieldKey(field);
          dataBuffer.put(value ? TRUE_BYTES : FALSE_BYTES);
       }
@@ -200,18 +215,18 @@ public class Point implements Poolable, AutoCloseable {
        * Escape handling
        */
 
-      private void escapeTag(final String tag) {
-         ensureTagBufferCapacity(encodedLength(tag));
+      private void escapeTagKeyOrValue(final String tag) {
+         ensureTagBufferCapacity(tag);
          escapeCommaEqualSpace(tag, tagsBuffer);
       }
 
       private void escapeFieldKey(final String key) {
-         ensureFieldBufferCapacity(encodedLength(key));
+         ensureFieldBufferCapacity(key);
          escapeCommaEqualSpace(key, dataBuffer);
       }
 
       private void escapeFieldValue(final String value) {
-         ensureFieldBufferCapacity(encodedLength(value));
+         ensureFieldBufferCapacity(value);
          escapeDoubleQuote(value, dataBuffer);
       }
 
@@ -304,8 +319,20 @@ public class Point implements Poolable, AutoCloseable {
        * Capacity handling
        */
 
+      private void ensureTagBufferCapacity(final String string) {
+         if (tagsBuffer.remaining() < (string.length() * 8)) { // x2 for escape sequences, x4 for max. UTF-8 encoded bytes
+            ensureTagBufferCapacity(encodedLength(string));
+         }
+      }
+
+      private void ensureFieldBufferCapacity(final String string) {
+         if (dataBuffer.remaining() < (string.length() * 8)) { // x2 for escape sequences, x4 for max. UTF-8 encoded bytes
+            ensureFieldBufferCapacity(encodedLength(string));
+         }
+      }
+
       private void ensureTagBufferCapacity(final int len) {
-         if (tagsBuffer.remaining() < len * 2) {
+         if (tagsBuffer.remaining() < len) {
             final ByteBuffer newBuffer = ByteBuffer.allocate(tagsBuffer.capacity() * 2);
             newBuffer.put(tagsBuffer.array(), 0, tagsBuffer.limit());
             tagsBuffer = newBuffer;
@@ -313,7 +340,7 @@ public class Point implements Poolable, AutoCloseable {
       }
 
       private void ensureFieldBufferCapacity(final int len) {
-         if (dataBuffer.remaining() < len * 2) {
+         if (dataBuffer.remaining() < len) {
             final ByteBuffer newBuffer = ByteBuffer.allocate(dataBuffer.capacity() * 2);
             newBuffer.put(dataBuffer.array(), 0, dataBuffer.limit());
             dataBuffer = newBuffer;
@@ -324,8 +351,8 @@ public class Point implements Poolable, AutoCloseable {
        * Miscellaneous
        */
 
-      private void addFieldSeparator(final String field) {
-         ensureFieldBufferCapacity(field.length() + 1);
+      private void addFieldSeparator() {
+         ensureFieldBufferCapacity(1);
          if (hasField) {
             dataBuffer.put((byte) ',');
          }
