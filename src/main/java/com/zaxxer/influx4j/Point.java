@@ -46,7 +46,7 @@ public class Point implements Poolable, AutoCloseable {
 
    Point(final Slot slot) {
       this.slot = slot;
-      this.tagKeys = new ArrayList<>(MAX_TAG_COUNT);
+      this.tagKeys = new ArrayList<>();
       this.tagValues = new ArrayList<>();
       this.tagSort = new int[MAX_TAG_COUNT];
       this.buffer = new AggregateBuffer();
@@ -71,6 +71,7 @@ public class Point implements Poolable, AutoCloseable {
 
    public Point field(final String field, final double value) {
 //      fields.put(field, value);
+      Double.doubleToRawLongBits(value);
       return this;
    }
 
@@ -320,13 +321,13 @@ public class Point implements Poolable, AutoCloseable {
        */
 
       private void ensureTagBufferCapacity(final String string) {
-         if (tagsBuffer.remaining() < (string.length() * 8)) { // x2 for escape sequences, x4 for max. UTF-8 encoded bytes
+         if (tagsBuffer.remaining() < (string.length() * 4)) { // x4 for max. UTF-8 encoded bytes
             ensureTagBufferCapacity(encodedLength(string));
          }
       }
 
       private void ensureFieldBufferCapacity(final String string) {
-         if (dataBuffer.remaining() < (string.length() * 8)) { // x2 for escape sequences, x4 for max. UTF-8 encoded bytes
+         if (dataBuffer.remaining() < (string.length() * 4)) { // x4 for max. UTF-8 encoded bytes
             ensureFieldBufferCapacity(encodedLength(string));
          }
       }

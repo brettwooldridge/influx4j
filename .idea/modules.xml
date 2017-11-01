@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/influx4j.iml" filepath="$PROJECT_DIR$/influx4j.iml" />
+      <module fileurl="file://$PROJECT_DIR$/benchmarks/influxdb-java-benchmarks.iml" filepath="$PROJECT_DIR$/benchmarks/influxdb-java-benchmarks.iml" />
     </modules>
   </component>
 </project>

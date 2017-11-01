@@ -7,10 +7,12 @@
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
         <module name="influx4j" />
+        <module name="influxdb-java-benchmarks" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
       <module name="influx4j" target="1.8" />
+      <module name="influxdb-java-benchmarks" target="1.8" />
     </bytecodeTargetLevel>
   </component>
 </project>
