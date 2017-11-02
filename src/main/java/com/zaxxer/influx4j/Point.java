@@ -70,8 +70,8 @@ public class Point implements Poolable, AutoCloseable {
    }
 
    public Point field(final String field, final double value) {
-//      fields.put(field, value);
-      Double.doubleToRawLongBits(value);
+      // TODO: zero allocation serialization
+       buffer.serializeDoubleField(field, value);
       return this;
    }
 
@@ -188,7 +188,7 @@ public class Point implements Poolable, AutoCloseable {
       }
 
       private void serializeLongField(final String field, final long value) {
-         ensureFieldBufferCapacity(3); // = and two "
+         ensureFieldBufferCapacity(3); // = and i
 
          addFieldSeparator();
          escapeFieldKey(field);
@@ -196,6 +196,16 @@ public class Point implements Poolable, AutoCloseable {
          ensureFieldBufferCapacity(21);
          writeLongToBuffer(value, dataBuffer);
          dataBuffer.put((byte) 'i');
+      }
+
+      private void serializeDoubleField(final String field, final double value) {
+         ensureFieldBufferCapacity(1); // =
+
+         addFieldSeparator();
+         escapeFieldKey(field);
+         dataBuffer.put((byte) '=');
+         ensureFieldBufferCapacity(21);
+         dataBuffer.put(Double.toString(value).getBytes());
       }
 
       private void serializeBooleanField(final String field, final boolean value) {

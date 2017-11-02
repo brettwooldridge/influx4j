@@ -131,6 +131,17 @@ public class LineProtocolTest {
    }
 
    @Test
+   public void testFieldDouble() throws IOException {
+      final ByteArrayOutputStream bos = new ByteArrayOutputStream();
+
+      pointFactory.createPoint("testMeasurement")
+              .field("double", 123456.0d)
+              .writeToStream(bos);
+
+      Assert.assertEquals("testMeasurement double=123456.0", bos.toString());
+   }
+
+   @Test
    public void testMultiFields() throws IOException {
       final ByteArrayOutputStream bos = new ByteArrayOutputStream();
 
