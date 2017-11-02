@@ -26,6 +26,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 
+import static com.zaxxer.influx4j.util.FastValue2Buffer.writeDoubleToBuffer;
 import static com.zaxxer.influx4j.util.FastValue2Buffer.writeLongToBuffer;
 import static com.zaxxer.influx4j.util.Utf8.encodedLength;
 
@@ -204,8 +205,8 @@ public class Point implements Poolable, AutoCloseable {
          addFieldSeparator();
          escapeFieldKey(field);
          dataBuffer.put((byte) '=');
-         ensureFieldBufferCapacity(21);
-         dataBuffer.put(Double.toString(value).getBytes());
+         ensureFieldBufferCapacity(25);
+         writeDoubleToBuffer(value, dataBuffer);
       }
 
       private void serializeBooleanField(final String field, final boolean value) {

@@ -17,6 +17,7 @@
 package com.zaxxer.influx4j;
 
 import com.zaxxer.influx4j.util.FastValue2Buffer;
+
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -32,11 +33,11 @@ public class FastValue2BufferTest
       final ByteBuffer buffer = ByteBuffer.allocate(64);
       final byte[] bytes = new byte[1];
 
-      FastValue2Buffer.writeLongToBuffer(1, buffer);
+      FastValue2Buffer.writeLongToBuffer(0, buffer);
 
       buffer.flip();
       buffer.get(bytes, 0, 1);
-      Assert.assertEquals("1", new String(bytes));
+      Assert.assertEquals("0", new String(bytes));
 
       buffer.flip();
       FastValue2Buffer.writeLongToBuffer(9, buffer);
@@ -117,5 +118,61 @@ public class FastValue2BufferTest
       buffer.flip();
       buffer.get(bytes, 0, "influx4j,123456".length());
       Assert.assertEquals("influx4j,123456", new String(bytes, 0, 15));
+   }
+
+   @Test
+   public void testDouble2Buffer1Digit() {
+      final ByteBuffer buffer = ByteBuffer.allocate(64);
+      final byte[] bytes = new byte[15];
+
+      FastValue2Buffer.writeDoubleToBuffer(0d, buffer);
+      
+      buffer.flip();
+      buffer.get(bytes, 0, buffer.limit());
+      Assert.assertEquals("0", new String(bytes, 0, buffer.limit()));
+
+      buffer.clear();
+      
+      FastValue2Buffer.writeDoubleToBuffer(9.0d, buffer);
+
+      buffer.flip();
+      buffer.get(bytes, 0, buffer.limit());
+      Assert.assertEquals("9", new String(bytes, 0, buffer.limit()));
+   }
+
+   @Test
+   public void testDouble2Buffer1and1() {
+      final ByteBuffer buffer = ByteBuffer.allocate(64);
+      final byte[] bytes = new byte[15];
+
+      FastValue2Buffer.writeDoubleToBuffer(9.2d, buffer);
+
+      buffer.flip();
+      buffer.get(bytes, 0, buffer.limit());
+      Assert.assertEquals(String.valueOf(9.2d), new String(bytes, 0, buffer.limit()));
+   }
+
+   @Test
+   public void testDouble2BufferTest2() {
+      final ByteBuffer buffer = ByteBuffer.allocate(64);
+      final byte[] bytes = new byte[15];
+
+      FastValue2Buffer.writeDoubleToBuffer(12345.6789d, buffer);
+      
+      buffer.flip();
+      buffer.get(bytes, 0, buffer.limit());
+      Assert.assertEquals(String.valueOf(12345.6789d), new String(bytes, 0, buffer.limit()));
+   }
+
+   @Test
+   public void testDouble2BufferTest3() {
+      final ByteBuffer buffer = ByteBuffer.allocate(64);
+      final byte[] bytes = new byte[25];
+
+      FastValue2Buffer.writeDoubleToBuffer(Double.MIN_VALUE, buffer);
+      
+      buffer.flip();
+      buffer.get(bytes, 0, buffer.limit());
+      Assert.assertTrue(Double.MIN_VALUE == Double.valueOf(new String(bytes, 0, buffer.limit())));
    }
 }

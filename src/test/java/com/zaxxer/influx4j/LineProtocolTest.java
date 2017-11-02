@@ -36,12 +36,12 @@ public class LineProtocolTest {
    @Before
    public void createFactory() {
       pointFactory = PointFactory.builder()
-              .setThreadFactory(r -> {
-                 Thread t = new Thread(r);
-                 t.setDaemon(true);
-                 return t;
-              })
-              .build();
+            .setThreadFactory(r -> {
+               Thread t = new Thread(r);
+               t.setDaemon(true);
+               return t;
+            })
+            .build();
    }
 
    @After
@@ -52,7 +52,7 @@ public class LineProtocolTest {
    @Test(expected = IllegalStateException.class)
    public void testNoField() throws IOException {
       pointFactory.createPoint("testMeasurement")
-              .writeToStream(null);
+            .writeToStream(null);
    }
 
    @Test
@@ -60,8 +60,8 @@ public class LineProtocolTest {
       final ByteArrayOutputStream bos = new ByteArrayOutputStream();
 
       pointFactory.createPoint("testMeasurement")
-              .field("boolean", true)
-              .writeToStream(bos);
+            .field("boolean", true)
+            .writeToStream(bos);
 
       Assert.assertEquals("testMeasurement boolean=t", bos.toString());
    }
@@ -71,15 +71,15 @@ public class LineProtocolTest {
       final ByteArrayOutputStream bos = new ByteArrayOutputStream();
 
       pointFactory.createPoint("com,ma")
-              .field("boolean", true)
-              .writeToStream(bos);
+            .field("boolean", true)
+            .writeToStream(bos);
       Assert.assertEquals("com\\,ma boolean=t", bos.toString());
 
       bos.reset();
 
       pointFactory.createPoint("sp ace")
-              .field("boolean", true)
-              .writeToStream(bos);
+            .field("boolean", true)
+            .writeToStream(bos);
       Assert.assertEquals("sp\\ ace boolean=t", bos.toString());
    }
 
@@ -99,8 +99,8 @@ public class LineProtocolTest {
       final ByteArrayOutputStream bos = new ByteArrayOutputStream();
 
       pointFactory.createPoint("testMeasurement")
-              .field("string", "This \"is\" a test")
-              .writeToStream(bos);
+            .field("string", "This \"is\" a test")
+            .writeToStream(bos);
 
       Assert.assertEquals("testMeasurement string=\"This \\\"is\\\" a test\"", bos.toString());
    }
@@ -111,10 +111,10 @@ public class LineProtocolTest {
       final ByteArrayOutputStream bos = new ByteArrayOutputStream();
 
       pointFactory.createPoint("testMeasurement")
-              .field("com,ma", 1)
-              .field("eq=ual", 2)
-              .field("sp ace", 3)
-              .writeToStream(bos);
+            .field("com,ma", 1)
+            .field("eq=ual", 2)
+            .field("sp ace", 3)
+            .writeToStream(bos);
 
       Assert.assertEquals("testMeasurement com\\,ma=1i,eq\\=ual=2i,sp\\ ace=3i", bos.toString());
    }
@@ -124,8 +124,8 @@ public class LineProtocolTest {
       final ByteArrayOutputStream bos = new ByteArrayOutputStream();
 
       pointFactory.createPoint("testMeasurement")
-              .field("long", 123456)
-              .writeToStream(bos);
+            .field("long", 123456)
+            .writeToStream(bos);
 
       Assert.assertEquals("testMeasurement long=123456i", bos.toString());
    }
@@ -135,10 +135,11 @@ public class LineProtocolTest {
       final ByteArrayOutputStream bos = new ByteArrayOutputStream();
 
       pointFactory.createPoint("testMeasurement")
-              .field("double", 123456.0d)
-              .writeToStream(bos);
+            .field("boolean", true)
+            .field("double", 123456.789d)
+            .writeToStream(bos);
 
-      Assert.assertEquals("testMeasurement double=123456.0", bos.toString());
+      Assert.assertEquals("testMeasurement boolean=t,double=123456.789", bos.toString());
    }
 
    @Test
@@ -146,10 +147,10 @@ public class LineProtocolTest {
       final ByteArrayOutputStream bos = new ByteArrayOutputStream();
 
       pointFactory.createPoint("testMeasurement")
-              .field("string", "This is a test")
-              .field("long", Long.MIN_VALUE)
-              .field("boolean", true)
-              .writeToStream(bos);
+            .field("string", "This is a test")
+            .field("long", Long.MIN_VALUE)
+            .field("boolean", true)
+            .writeToStream(bos);
 
       Assert.assertEquals("testMeasurement string=\"This is a test\",long=-9223372036854775808i,boolean=t", bos.toString());
    }

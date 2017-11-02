@@ -18,6 +18,8 @@ package com.zaxxer.influx4j.util;
 
 import java.nio.ByteBuffer;
 
+import com.zaxxer.influx4j.util.fastdouble.FastDtoaBuffer;
+
 /**
  * Created by brettw on 2017/10/30.
  */
@@ -55,12 +57,23 @@ public class FastValue2Buffer
            1000000000000000000L };
    //      10000000000000000000L    -- too big for signed long
 
+   private static final ThreadLocal<FastDtoaBuffer> FAST_DTOA_BUFFER = new ThreadLocal<FastDtoaBuffer>() {
+      @Override protected FastDtoaBuffer initialValue() {
+         return new FastDtoaBuffer();
+      }
+   };
+
    private static final int NO_NEGATIVE_OFFSET = 0;
    private static final int NEGATIVE_OFFSET = 1;
 
    private static final byte[] LONG_MINVALUE_BYTES = String.valueOf(Long.MIN_VALUE).getBytes();
 
    private FastValue2Buffer() {
+   }
+
+   public static void writeDoubleToBuffer(final double value, final ByteBuffer buffer) {
+      final FastDtoaBuffer dtoaBuffer = FAST_DTOA_BUFFER.get();
+      dtoaBuffer.setBuffer(buffer).format(value);
    }
 
    public static void writeLongToBuffer(final long value, final ByteBuffer buffer) {
@@ -86,49 +99,6 @@ public class FastValue2Buffer
 
       writeNumber(bytes, len, v, offset);
       buffer.position(buffer.position() + len + negOffset);
-   }
-
-   public static void writeDoubleToBuffer(final double value, final ByteBuffer buffer) {
-      final double v;
-      final int negOffset;
-      if (value >= 0) {
-         v = value;
-         negOffset = NO_NEGATIVE_OFFSET;
-      }
-      else if (value == Long.MIN_VALUE) {
-         buffer.put(LONG_MINVALUE_BYTES);
-         return;
-      }
-      else {
-         v = -value;
-         buffer.put((byte) '-');
-         negOffset = NEGATIVE_OFFSET;
-      }
-
-      final int offset = buffer.position();
-      final long double64 = Double.doubleToRawLongBits(value);
-      final long fraction = double64 & 0xFFFFFFFFFFFFFL;
-      final int exponent = (int) (double64 >> 53L) & 0b011111111111;
-      switch (exponent) {
-         case 0x000:
-            // is used to represent a signed zero (if F=0) and subnormals (if F≠0), where F is the
-            // fractional part of the significand.  In the case of subnormals (e=0) the double-precision number
-            // is described by: (-1 sign) x 2^-1022 x 0.fraction
-            break;
-         case 0x001:
-            // 2^(1-1023) = 2^-1022 (smallest exponent for normal numbers)
-            break;
-         case 0x7fe:
-            // 2^(2046-1023) = 2^1023 (highest exponent)
-            break;
-         case 0x7ff:
-            // is used to represent ∞ (if F=0) and NaNs (if F≠0), where F is the fractional part of the significand.
-            break;
-         default:
-            // Except for the above exceptions, the entire double-precision number is described by:
-            // (-1 sign) x 2^(e-1023) x 1.fraction
-            break;
-      }
    }
 
    private static void writeNumber(final byte[] buffer, final int len, final long value, final int offset) {
@@ -162,6 +132,13 @@ public class FastValue2Buffer
 
    private static int numberDigits(long value) {
       final int t = (log2(value) + 1) * 1233 >> 12;
-      return 1 + t - (value < PowersOf10[t] ? 1 : 0);
+      final long pow10;
+      if (t == 19) {
+         return (value > PowersOf10[18]) ? 1 + 19 - 1 : 1;
+      }
+      else {
+         pow10 = PowersOf10[t];
+      }
+      return 1 + t - (value < pow10 ? 1 : 0);
    }
 }

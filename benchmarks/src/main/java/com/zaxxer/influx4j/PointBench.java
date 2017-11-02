@@ -72,7 +72,10 @@ public class PointBench {
                  .tag("apple", "1")
                  .tag("table", "3")
                  .tag("mouse", "2")
-                 .field("long", 12345);
+                 .field("long", 12345)
+                 .field("boolean", true)
+                 .field("double", 12345.6789d)
+                 .field("string", "This \"is\" a test");             
 
          point.writeToStream(os);
          point.release();
@@ -93,6 +96,9 @@ public class PointBench {
                  .tag("table", "3")
                  .tag("mouse", "2")
                  .addField("long", 12345)
+                 .addField("boolean", true)
+                 .addField("double", 12345.6789d)
+                 .addField("string", "This \"is\" a test")
                  .build();
 
         os.write(point.lineProtocol().getBytes());
