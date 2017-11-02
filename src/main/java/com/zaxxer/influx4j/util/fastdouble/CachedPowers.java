@@ -54,7 +54,6 @@ public class CachedPowers {
 
         c_mk.setF(cachedPower.significand);
         c_mk.setE(cachedPower.binaryExponent);
-        assert((alpha <= c_mk.e() + e) && (c_mk.e() + e <= gamma));
         return cachedPower.decimalExponent;
     }
 

@@ -17,6 +17,14 @@
 package com.zaxxer.influx4j.util;
 
 import java.nio.ByteBuffer;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+
+import stormpot.Allocator;
+import stormpot.BlazePool;
+import stormpot.Config;
+import stormpot.Slot;
+import stormpot.Timeout;
 
 import com.zaxxer.influx4j.util.fastdouble.FastDtoaBuffer;
 
@@ -57,23 +65,37 @@ public class FastValue2Buffer
            1000000000000000000L };
    //      10000000000000000000L    -- too big for signed long
 
-   private static final ThreadLocal<FastDtoaBuffer> FAST_DTOA_BUFFER = new ThreadLocal<FastDtoaBuffer>() {
-      @Override protected FastDtoaBuffer initialValue() {
-         return new FastDtoaBuffer();
-      }
-   };
+   private static final Timeout TIMEOUT = new Timeout(Long.MAX_VALUE, TimeUnit.DAYS);
+   
+   private static final BlazePool<FastDtoaBuffer> dtoaPool;
 
    private static final int NO_NEGATIVE_OFFSET = 0;
    private static final int NEGATIVE_OFFSET = 1;
 
    private static final byte[] LONG_MINVALUE_BYTES = String.valueOf(Long.MIN_VALUE).getBytes();
 
+   static {
+      final Config<FastDtoaBuffer> config = new Config<>()
+         .setAllocator(new FastDoubleAllocator())
+         .setSize(1024)
+         .setThreadFactory(r -> {
+            Thread t = new Thread(r, "StormPot FastDtoaBuffer Pool");
+            t.setDaemon(true);
+            return t;
+         });
+      dtoaPool = new BlazePool<>(config);
+   }
+
    private FastValue2Buffer() {
    }
 
    public static void writeDoubleToBuffer(final double value, final ByteBuffer buffer) {
-      final FastDtoaBuffer dtoaBuffer = FAST_DTOA_BUFFER.get();
-      dtoaBuffer.setBuffer(buffer).format(value);
+      try (FastDtoaBuffer dtoaBuffer = dtoaPool.claim(TIMEOUT)) {
+         dtoaBuffer.setBuffer(buffer).format(value);
+      }
+      catch (InterruptedException e) {
+         throw new RuntimeException(e);
+      }
    }
 
    public static void writeLongToBuffer(final long value, final ByteBuffer buffer) {
@@ -140,5 +162,21 @@ public class FastValue2Buffer
          pow10 = PowersOf10[t];
       }
       return 1 + t - (value < pow10 ? 1 : 0);
+   }
+
+
+   /**
+    * {@code Allocator} used by StormPot for managing poolable object lifetimes.
+    */
+    private static class FastDoubleAllocator implements Allocator<FastDtoaBuffer> {
+      @Override
+      public FastDtoaBuffer allocate(final Slot slot) throws Exception {
+         return new FastDtoaBuffer(slot);
+      }
+
+      @Override
+      public void deallocate(final FastDtoaBuffer poolable) throws Exception {
+         // nothing
+      }
    }
 }

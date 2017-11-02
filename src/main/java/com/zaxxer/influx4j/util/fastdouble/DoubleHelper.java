@@ -42,8 +42,6 @@ public class DoubleHelper {
       long f = significand(d64);
       int e = exponent(d64);
 
-      assert (f != 0);
-
       // The current double could be a denormal.
       while ((f & kHiddenBit) == 0) {
          f <<= 1;
@@ -99,7 +97,6 @@ public class DoubleHelper {
    // The bigger boundary (m_plus) is normalized. The lower boundary has the same
    // exponent as m_plus.
    static void normalizedBoundaries(final long d64, final DiyFp m_minus, final DiyFp m_plus) {
-      assert (!isSpecial(d64));      
       DiyFp v = m_minus.allocator.create(significand(d64), exponent(d64));
       boolean significand_is_zero = (v.f() == kHiddenBit);
       m_plus.setF((v.f() << 1) + 1);

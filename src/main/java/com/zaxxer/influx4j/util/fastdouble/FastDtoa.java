@@ -423,12 +423,9 @@ final class FastDtoa {
       // Grisu3 will never output representations that lie exactly on a boundary.
       DiyFp boundary_minus = buffer.create(), boundary_plus = buffer.create();
       DoubleHelper.normalizedBoundaries(bits, boundary_minus, boundary_plus);
-      assert(boundary_plus.e() == w.e());
       DiyFp ten_mk = buffer.create(); // Cached power of ten: 10^-k
       int mk = CachedPowers.getCachedPower(w.e() + DiyFp.kSignificandSize, minimal_target_exponent,
             maximal_target_exponent, ten_mk);
-      assert(minimal_target_exponent <= w.e() + ten_mk.e() + DiyFp.kSignificandSize &&
-             maximal_target_exponent >= w.e() + ten_mk.e() +DiyFp.kSignificandSize);
       // Note that ten_mk is only an approximation of 10^-k. A DiyFp only contains a
       // 64 bit significand and ten_mk is thus only precise up to 64 bits.
 
@@ -439,7 +436,6 @@ final class FastDtoa {
       // In other words: let f = scaled_w.f() and e = scaled_w.e(), then
       //           (f-1) * 2^e < w*10^k < (f+1) * 2^e
       DiyFp scaled_w = w.times(ten_mk);
-      assert(scaled_w.e() == boundary_plus.e() + ten_mk.e() + DiyFp.kSignificandSize);
       // In theory it would be possible to avoid some recomputations by computing
       // the difference between w and boundary_minus/plus (a power of 2) and to
       // compute scaled_boundary_minus/plus by subtracting/adding from

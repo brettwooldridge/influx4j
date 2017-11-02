@@ -6,10 +6,14 @@
 
 package com.zaxxer.influx4j.util.fastdouble;
 
-import java.util.Arrays;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 
-public final class FastDtoaBuffer {
+import stormpot.Poolable;
+import stormpot.Slot;
+
+public final class FastDtoaBuffer implements Poolable, AutoCloseable {
+   private final Slot slot;   
    private final DiyFp[] diyFps = new DiyFp[20];
    private int dipFpNdx;
 
@@ -19,10 +23,22 @@ public final class FastDtoaBuffer {
    int end;
    int point;
 
-   public FastDtoaBuffer() {
+   public FastDtoaBuffer(final Slot slot) {
+      this.slot = slot;
+      
       for (int i = 0; i < diyFps.length; i++) {
          diyFps[i] = new DiyFp(this);
       }
+   }
+
+   @Override
+   public void close() {
+      slot.release(this);
+   }
+
+   @Override
+   public void release() {
+      slot.release(this);
    }
 
    public FastDtoaBuffer setBuffer(final ByteBuffer buffer) {

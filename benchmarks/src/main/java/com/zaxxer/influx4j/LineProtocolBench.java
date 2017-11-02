@@ -25,7 +25,7 @@ import java.util.concurrent.TimeUnit;
 @BenchmarkMode(Mode.Throughput)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 @SuppressWarnings("unused")
-public class PointBench {
+public class LineProtocolBench {
    @Param({ "influx4j", "influxdb" })
    private String implementation;
 
@@ -75,7 +75,7 @@ public class PointBench {
                  .field("long", 12345)
                  .field("boolean", true)
                  .field("double", 12345.6789d)
-                 .field("string", "This \"is\" a test");             
+                 .field("string", "This is a string");
 
          point.writeToStream(os);
          point.release();
@@ -98,7 +98,7 @@ public class PointBench {
                  .addField("long", 12345)
                  .addField("boolean", true)
                  .addField("double", 12345.6789d)
-                 .addField("string", "This \"is\" a test")
+                 .addField("string", "This is a string")
                  .build();
 
         os.write(point.lineProtocol().getBytes());

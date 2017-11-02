@@ -9,6 +9,16 @@
   "editor.tabSize": 3,
 
   // When opening a file, `editor.tabSize` and `editor.insertSpaces` will be detected based on the file contents.
-"editor.detectIndentation": false,
-"java.configuration.updateBuildConfiguration": "interactive"
+  "editor.detectIndentation": false,
+
+  "java.configuration.updateBuildConfiguration": "interactive",
+
+  // When enabled, will trim trailing whitespace when saving a file.
+  "files.trimTrailingWhitespace": false,
+
+  // When enabled, will trim all new lines after the final new line at the end of the file when saving it.
+  "files.trimFinalNewlines": false,
+
+  // Controls auto save of dirty files. Accepted values:  'off', 'afterDelay', 'onFocusChange' (editor loses focus), 'onWindowChange' (window loses focus). If set to 'afterDelay', you can configure the delay in 'files.autoSaveDelay'.
+  "files.autoSave": "off"  
 }
