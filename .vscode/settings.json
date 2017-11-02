@@ -14,11 +14,11 @@
   "java.configuration.updateBuildConfiguration": "interactive",
 
   // When enabled, will trim trailing whitespace when saving a file.
-  "files.trimTrailingWhitespace": false,
+  "files.trimTrailingWhitespace": true,
 
   // When enabled, will trim all new lines after the final new line at the end of the file when saving it.
-  "files.trimFinalNewlines": false,
+  "files.trimFinalNewlines": true,
 
   // Controls auto save of dirty files. Accepted values:  'off', 'afterDelay', 'onFocusChange' (editor loses focus), 'onWindowChange' (window loses focus). If set to 'afterDelay', you can configure the delay in 'files.autoSaveDelay'.
-  "files.autoSave": "off"  
+  "files.autoSave": "on"  
 }

@@ -20,8 +20,6 @@ import java.util.concurrent.TimeUnit;
  * Created by brettw on 2017/11/01.
  */
 @State(Scope.Thread)
-@Warmup(iterations=3)
-@Measurement(iterations=8)
 @BenchmarkMode(Mode.Throughput)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 @SuppressWarnings("unused")
@@ -30,10 +28,6 @@ public class LineProtocolBench {
    private String implementation;
 
    private PointAdapter pointAdapter;
-
-   interface PointAdapter {
-      Object createPointLineProtocol() throws IOException;
-   }
 
    @Setup(Level.Trial)
    public void createAdapter() {
@@ -52,15 +46,23 @@ public class LineProtocolBench {
       return pointAdapter.createPointLineProtocol();
    }
 
-   private static final PointFactory pointFactory = PointFactory.builder()
-           .setThreadFactory(r -> {
-              Thread t = new Thread(r);
-              t.setDaemon(true);
-              return t;
-           })
-           .build();
+   /***************************************************************************
+    * Internal interfaces
+    */
 
-   private class Influx4jPointAdapter implements PointAdapter {
+   private interface PointAdapter {
+      Object createPointLineProtocol() throws IOException;
+   }
+
+   private static class Influx4jPointAdapter implements PointAdapter {
+      private static final PointFactory pointFactory = PointFactory.builder()
+         .setThreadFactory(r -> {
+            Thread t = new Thread(r);
+            t.setDaemon(true);
+            return t;
+         })
+         .build();
+
       private final ByteArrayOutputStream os = new ByteArrayOutputStream(256);
 
       @Override
@@ -75,15 +77,15 @@ public class LineProtocolBench {
                  .field("long", 12345)
                  .field("boolean", true)
                  .field("double", 12345.6789d)
-                 .field("string", "This is a string");
-
-         point.writeToStream(os);
+                 .field("string", "This is a string")
+                 .writeToStream(os);
          point.release();
-         return os;
+
+        return os;
       }
    }
 
-   private class InfluxDbPointAdapter implements PointAdapter {
+   private static class InfluxDbPointAdapter implements PointAdapter {
       private final ByteArrayOutputStream os = new ByteArrayOutputStream(256);
 
       @Override

@@ -101,7 +101,7 @@ public class Point implements Poolable, AutoCloseable {
       buffer.serializeMeasurement(measurement);
    }
 
-   void writeToStream(final OutputStream stream) throws IOException {
+   Point writeToStream(final OutputStream stream) throws IOException {
       if (!buffer.hasField) {
          throw new IllegalStateException("Point must have at least one field");
       }
@@ -124,6 +124,7 @@ public class Point implements Poolable, AutoCloseable {
       }
 
       buffer.write(stream);
+      return this;
    }
 
    private void reset() {
