@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
 import static com.zaxxer.influx4j.util.FastValue2Buffer.writeDoubleToBuffer;
@@ -39,23 +40,25 @@ public class Point implements Poolable, AutoCloseable {
 
    private final ParallelTagArrayComparator tagKeyComparator;
    private final AggregateBuffer buffer;
-   private final ArrayList<String> tagKeys;
+   private final String[] tagKeys;
    private final ArrayList<String> tagValues;
    private final int[] tagSort;
    private final Slot slot;
    private Long timestamp;
+   private int tagKeyIndex;
+   private int tagKeyMark;
 
    Point(final Slot slot) {
       this.slot = slot;
-      this.tagKeys = new ArrayList<>();
-      this.tagValues = new ArrayList<>();
+      this.tagKeys = new String[MAX_TAG_COUNT];
       this.tagSort = new int[MAX_TAG_COUNT];
+      this.tagValues = new ArrayList<>();
       this.buffer = new AggregateBuffer();
       this.tagKeyComparator = new ParallelTagArrayComparator(tagKeys);
    }
 
    public Point tag(final String tag, final String value) {
-      tagKeys.add(tag);
+      tagKeys[tagKeyIndex++] = tag;
       tagValues.add(value);
       return this;
    }
@@ -86,6 +89,18 @@ public class Point implements Poolable, AutoCloseable {
       return this;
    }
 
+   public Point mark() {
+      tagKeyMark = tagKeyIndex;
+      buffer.mark();
+      return this;
+   }
+
+   public Point rewind() {
+      tagKeyIndex = tagKeyMark;
+      buffer.rewind();
+      return this;
+   }
+
    @Override
    public void close() {
       release();
@@ -97,7 +112,7 @@ public class Point implements Poolable, AutoCloseable {
       slot.release(this);
    }
 
-   void measurement(final String measurement) {
+   public void measurement(final String measurement) {
       buffer.serializeMeasurement(measurement);
    }
 
@@ -106,8 +121,8 @@ public class Point implements Poolable, AutoCloseable {
          throw new IllegalStateException("Point must have at least one field");
       }
 
-      if (!tagKeys.isEmpty()) {
-         final int tags = tagKeys.size();
+      if (tagKeyIndex > 0) {
+         final int tags = tagKeyIndex;
          for (int i = 0; i < tags; i++) {
             tagSort[i] = i;
          }
@@ -115,7 +130,7 @@ public class Point implements Poolable, AutoCloseable {
          PrimitiveArraySort.sort(tagSort, tags, tagKeyComparator);
          for (int i = 0; i < tags; i++) {
             final int ndx = tagSort[i];
-            buffer.serializeTag(tagKeys.get(ndx), tagValues.get(ndx));
+            buffer.serializeTag(tagKeys[ndx], tagValues.get(ndx));
          }
       }
 
@@ -128,7 +143,8 @@ public class Point implements Poolable, AutoCloseable {
    }
 
    private void reset() {
-      tagKeys.clear();
+      Arrays.fill(tagKeys, null);
+      tagKeyIndex = 0;
       tagValues.clear();
       timestamp = null;
       buffer.reset();
@@ -141,8 +157,6 @@ public class Point implements Poolable, AutoCloseable {
 
    private static final class AggregateBuffer {
       private static final int INITIAL_BUFFER_SIZES = 128;
-      private static final byte[] TRUE_BYTES = "=t".getBytes();
-      private static final byte[] FALSE_BYTES = "=f".getBytes();
 
       private ByteBuffer tagsBuffer;
       private ByteBuffer dataBuffer;
@@ -153,11 +167,21 @@ public class Point implements Poolable, AutoCloseable {
          this.dataBuffer = ByteBuffer.allocate(INITIAL_BUFFER_SIZES).put((byte) ' ');
       }
 
+      private void mark() {
+         tagsBuffer.mark();
+         dataBuffer.mark();
+      }
+
+      public void rewind() {
+         tagsBuffer.reset();
+         dataBuffer.reset();
+      }
+
       private void reset() {
          tagsBuffer.clear();
          dataBuffer.clear();
          dataBuffer.put((byte) ' ');
-         this.hasField = false;
+         hasField = false;
       }
 
       /*********************************************************************************************
@@ -215,7 +239,8 @@ public class Point implements Poolable, AutoCloseable {
 
          addFieldSeparator();
          escapeFieldKey(field);
-         dataBuffer.put(value ? TRUE_BYTES : FALSE_BYTES);
+         dataBuffer.put((byte) '=');
+         dataBuffer.put(value ? (byte) 't' : (byte) 'f');
       }
 
       private void serializeTimestamp(final long timestamp) {
@@ -383,15 +408,15 @@ public class Point implements Poolable, AutoCloseable {
    }
 
    private static class ParallelTagArrayComparator implements PrimitiveArraySort.IntComparator {
-      private final ArrayList<String> tagKeys;
+      private final String[] tagKeys;
 
-      private ParallelTagArrayComparator(final ArrayList<String> tagKeys) {
+      private ParallelTagArrayComparator(final String[] tagKeys) {
          this.tagKeys = tagKeys;
       }
 
       @Override
       public int compare(int a, int b) {
-         return tagKeys.get(a).compareTo(tagKeys.get(b));
+         return tagKeys[a].compareTo(tagKeys[b]);
       }
    }
 }
