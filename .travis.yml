@@ -1,0 +1,10 @@
+language: java
+sudo: false
+cache:
+  directories:
+    - $HOME/.m2/repository
+jdk:
+  - oraclejdk8
+
+script:
+  - mvn package -Dmaven.javadoc.skip=true -V -B
