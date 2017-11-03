@@ -14,7 +14,7 @@ When jamming thousands of metrics per minute into InfluxDB, you can't afford Sto
 As measured by the [JMH](http://www.oracle.com/technetwork/articles/java/architect-benchmarking-2266277.html) benchmark, included in this project, comparing *influx4j* with the official driver, Point-to-protocol ...
 
 #### 45 Second run:
-| Driver           | Points Produced<br><sup>(approx.)</sup> | Points/ms<br><sup>(approx.)</sup> | Garbage<br>Produced  | Avg creation<br>rate | Garbage<br>Collections |
+| Driver           | Points Produced<br><sup>(approx.)</sup> | Points/ms<br><sup>(approx.)</sup> | Garbage<br>Produced  | Avg Garbage<br>Creation Rate | G1 Garbage<br>Collections |
 |:---------------- | ---------------------------------------:| ------:|:--------------------:|:--------------------:|:----------------------:|
 | *influx4j*       | 279 million  | 6200 | *zero*   | *zero*       | *zero* |
 | *influxdb-java*  | 12 million   |  264 | 334.64 gb | 6.17 gb/sec | 766 |
