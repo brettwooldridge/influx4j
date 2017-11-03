@@ -1,7 +1,7 @@
 [![][Build Status img]][Build Status]
 [![][license img]][license]
 
-# influx4j<sup><sup><sup>&nbsp;(*Work in-progress.  Estimated v1.0 by end of Nov. 2017.*)</sup></sup></sup>
+# influx4j<sup><sup><sup>&nbsp;(*Work in-progress.  Est. v1.0 by end of Nov. 2017.*)</sup></sup></sup>
 
 InfluxDB is a high-performance time-series database.  You need a Java driver to match.
 
