@@ -5,7 +5,7 @@
 
 InfluxDB is a high-performance time-series database.  You need a Java driver to match.
 
-When jamming thousands of metrics per minute into InfluxDB, you can't afford Stop-The-World garbage collection times reaching into the hundreds (or thousands) of milliseconds.  And you can't afford to senselessly burn CPU cycles.
+When jamming tens-of-thousands of metrics into InfluxDB *per minute*, you can't afford Stop-The-World garbage collection times reaching into the hundreds (or thousands) of milliseconds.  And you can't afford to senselessly burn CPU cycles.
 
 ### *25x* Faster.&nbsp;&nbsp;*25x* Less CPU.&nbsp;&nbsp;*Infinity* Less Garbage.
 
