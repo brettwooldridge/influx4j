@@ -11,7 +11,7 @@ When jamming thousands of metrics per minute into InfluxDB, you can't afford Sto
 
 *influx4j is wickedly fast.* 25 times faster than the offical driver.  *influx4j is a CPU miser.*  25 times less CPU consumption persisting a datapoint than the official driver.  *influx4j generates ZERO garbage from Point to Protocol.*  Infinitely less garbage than the official driver.
 
-As measured by the [JMH](http://www.oracle.com/technetwork/articles/java/architect-benchmarking-2266277.html) benchmark, included in this project, comparing *influx4j* with the official driver, ...
+As measured by the [JMH](http://www.oracle.com/technetwork/articles/java/architect-benchmarking-2266277.html) benchmark, included in this project, comparing *influx4j* with the official driver, Point-to-protocol ...
 
 #### 45 Second run:
 | Driver           | Points Produced<br><sup>(approx.)</sup> | Points/ms<br><sup>(approx.)</sup> | Garbage<br>Produced  | Avg creation<br>rate | Garbage<br>Collections |
