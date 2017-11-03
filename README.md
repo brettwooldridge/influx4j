@@ -21,7 +21,7 @@ As measured by the [JMH](http://www.oracle.com/technetwork/articles/java/archite
 <br>
 Zero garbage means the JVM interrupts your performance critical code less.<sup>1</sup>  The extreme efficiency of the Point-to-protocol buffer serialization pipeline means you burn 25x less CPU producing the same number of points compared to the official driver.
 
-<sup><sup>1</sup>&nbsp;Note: While influx4j generates zero garbage, *your application*, and *associated libraries* likely generate garbage that will still require collection.</sup>
+<sub><sup>1</sup>&nbsp;Note: While influx4j generates zero garbage, *your application*, and *associated libraries* likely generate garbage that will still require collection.</sub>
 
 [Build Status]:https://travis-ci.org/brettwooldridge/influx4j
 [Build Status img]:https://travis-ci.org/brettwooldridge/influx4j.svg?branch=master
