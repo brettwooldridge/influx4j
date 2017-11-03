@@ -18,8 +18,8 @@ As measured by the [JMH](http://www.oracle.com/technetwork/articles/java/archite
 |:---------------- | ---------------------------------------:| ------:|:--------------------:|:--------------------:|:----------------------:|
 | *influx4j*       | 279 million  | 6200 | *zero*   | *zero*       | *zero* |
 | *influxdb-java*  | 12 million   |  264 | 334.64 gb | 6.17 gb/sec | 766 |
-
-Zero garbage means the JVM interrupts your performance critical code less.<sup>1</sup>  The extremely efficiency of the Point-to-protocol buffer serialization pipeline means you burn 25x less CPU producing the same number of points compared to the official driver.
+<br>
+Zero garbage means the JVM interrupts your performance critical code less.<sup>1</sup>  The extreme efficiency of the Point-to-protocol buffer serialization pipeline means you burn 25x less CPU producing the same number of points compared to the official driver.
 
 <sup><sup>1</sup>&nbsp;Note: While influx4j generates zero garbage, *your application*, and *associated libraries* likely generate garbage that will still require collection.</sup>
 
