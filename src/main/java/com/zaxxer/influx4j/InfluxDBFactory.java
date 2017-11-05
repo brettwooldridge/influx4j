@@ -34,13 +34,23 @@ public class InfluxDBFactory {
       private String database;
       private String username;
       private String password;
-      private String url;
+      private String host;
+      private int port;
+      private Protocol protocol;
+
+      public enum Protocol {
+         HTTP,
+         HTTPS,
+         UDP
+      }
 
       private Builder() {
       }
 
-      public Builder setUrl(final String url) {
-         this.url = url;
+      public Builder setConnection(final String host, final int port, final Protocol protocol) {
+         this.host = host;
+         this.port = port;
+         this.protocol = protocol;
          return this;
       }
 
