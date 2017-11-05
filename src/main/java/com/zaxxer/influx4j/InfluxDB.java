@@ -21,6 +21,64 @@ package com.zaxxer.influx4j;
  */
 public class InfluxDB {
 
+   public static enum Protocol {
+      HTTP,
+      HTTPS,
+      UDP
+   }
+
+   public static Builder builder() {
+      return new Builder();
+   }
+
+   /**
+    * Builder for a {@link InfluxDB} instance.  Call {@link InfluxDB#builder()} to
+    * create an instance of the {@link Builder}.
+    */
+   public static class Builder {
+      private String retentionPolicy;
+      private String database;
+      private String username;
+      private String password;
+      private String host;
+      private int port;
+      private Protocol protocol;
+
+      private Builder() {
+      }
+
+      public Builder setConnection(final String host, final int port, final Protocol protocol) {
+         this.host = host;
+         this.port = port;
+         this.protocol = protocol;
+         return this;
+      }
+
+      public Builder setUsername(final String username) {
+         this.username = username;
+         return this;
+      }
+
+      public Builder setPassword(final String password) {
+         this.password = password;
+         return this;
+      }
+
+      public Builder setDatabase(final String database) {
+         this.database = database;
+         return this;
+      }
+
+      public Builder setRetentionPolicy(final String retentionPolicy) {
+         this.retentionPolicy = retentionPolicy;
+         return this;
+      }
+
+      public InfluxDB build() {
+         return new InfluxDB();
+      }
+   }
+
    InfluxDB() {
       // package visibility
    }
