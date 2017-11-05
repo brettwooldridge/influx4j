@@ -41,7 +41,7 @@ public class Point implements Poolable, AutoCloseable {
    private final ParallelTagArrayComparator tagKeyComparator;
    private final AggregateBuffer buffer;
    private final String[] tagKeys;
-   private final ArrayList<String> tagValues;
+   private final String[] tagValues;
    private final int[] tagSort;
    private final Slot slot;
    private Long timestamp;
@@ -52,14 +52,15 @@ public class Point implements Poolable, AutoCloseable {
       this.slot = slot;
       this.tagKeys = new String[MAX_TAG_COUNT];
       this.tagSort = new int[MAX_TAG_COUNT];
-      this.tagValues = new ArrayList<>();
+      this.tagValues = new String[MAX_TAG_COUNT];
       this.buffer = new AggregateBuffer();
       this.tagKeyComparator = new ParallelTagArrayComparator(tagKeys);
    }
 
    public Point tag(final String tag, final String value) {
-      tagKeys[tagKeyIndex++] = tag;
-      tagValues.add(value);
+      tagKeys[tagKeyIndex] = tag;
+      tagValues[tagKeyIndex] = value;
+      tagKeyIndex++;
       return this;
    }
 
@@ -74,7 +75,6 @@ public class Point implements Poolable, AutoCloseable {
    }
 
    public Point field(final String field, final double value) {
-      // TODO: zero allocation serialization
        buffer.serializeDoubleField(field, value);
       return this;
    }
@@ -112,8 +112,9 @@ public class Point implements Poolable, AutoCloseable {
       slot.release(this);
    }
 
-   public void measurement(final String measurement) {
+   public Point measurement(final String measurement) {
       buffer.serializeMeasurement(measurement);
+      return this;
    }
 
    Point writeToStream(final OutputStream stream) throws IOException {
@@ -122,15 +123,15 @@ public class Point implements Poolable, AutoCloseable {
       }
 
       if (tagKeyIndex > 0) {
-         final int tags = tagKeyIndex;
-         for (int i = 0; i < tags; i++) {
+         final int tagCount = tagKeyIndex;
+         for (int i = 0; i < tagCount; i++) {
             tagSort[i] = i;
          }
 
-         PrimitiveArraySort.sort(tagSort, tags, tagKeyComparator);
-         for (int i = 0; i < tags; i++) {
+         PrimitiveArraySort.sort(tagSort, tagCount, tagKeyComparator);
+         for (int i = 0; i < tagCount; i++) {
             final int ndx = tagSort[i];
-            buffer.serializeTag(tagKeys[ndx], tagValues.get(ndx));
+            buffer.serializeTag(tagKeys[ndx], tagValues[ndx]);
          }
       }
 
@@ -144,8 +145,9 @@ public class Point implements Poolable, AutoCloseable {
 
    private void reset() {
       Arrays.fill(tagKeys, null);
+      Arrays.fill(tagValues, null);
       tagKeyIndex = 0;
-      tagValues.clear();
+      tagKeyMark = 0;
       timestamp = null;
       buffer.reset();
    }
@@ -156,7 +158,7 @@ public class Point implements Poolable, AutoCloseable {
     */
 
    private static final class AggregateBuffer {
-      private static final int INITIAL_BUFFER_SIZES = 128;
+      private static final int INITIAL_BUFFER_SIZES = 256;
 
       private ByteBuffer tagsBuffer;
       private ByteBuffer dataBuffer;
@@ -189,6 +191,7 @@ public class Point implements Poolable, AutoCloseable {
        */
 
       private void serializeMeasurement(final String measurement) {
+         tagsBuffer.position(0);
          ensureTagBufferCapacity(measurement);
          escapeCommaSpace(measurement, tagsBuffer);
       }
@@ -371,7 +374,7 @@ public class Point implements Poolable, AutoCloseable {
 
       private void ensureTagBufferCapacity(final int len) {
          if (tagsBuffer.remaining() < len) {
-            final ByteBuffer newBuffer = ByteBuffer.allocate(tagsBuffer.capacity() * 2);
+            final ByteBuffer newBuffer = ByteBuffer.allocate(tagsBuffer.capacity() * 4);
             newBuffer.put(tagsBuffer.array(), 0, tagsBuffer.limit());
             tagsBuffer = newBuffer;
          }
@@ -379,7 +382,7 @@ public class Point implements Poolable, AutoCloseable {
 
       private void ensureFieldBufferCapacity(final int len) {
          if (dataBuffer.remaining() < len) {
-            final ByteBuffer newBuffer = ByteBuffer.allocate(dataBuffer.capacity() * 2);
+            final ByteBuffer newBuffer = ByteBuffer.allocate(dataBuffer.capacity() * 4);
             newBuffer.put(dataBuffer.array(), 0, dataBuffer.limit());
             dataBuffer = newBuffer;
          }
@@ -399,11 +402,11 @@ public class Point implements Poolable, AutoCloseable {
       }
 
       private void write(final OutputStream outputStream) throws IOException {
-         tagsBuffer.flip();
-         dataBuffer.flip();
+         // tagsBuffer.flip();
+         // dataBuffer.flip();
 
-         outputStream.write(tagsBuffer.array(), 0, tagsBuffer.limit());
-         outputStream.write(dataBuffer.array(), 0, dataBuffer.limit());
+         outputStream.write(tagsBuffer.array(), 0, tagsBuffer.position());
+         outputStream.write(dataBuffer.array(), 0, dataBuffer.position());
       }
    }
 

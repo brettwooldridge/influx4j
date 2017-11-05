@@ -243,4 +243,41 @@ public class LineProtocolTest {
          factory.shutdown();
       }
    }
+
+   @Test
+   public void testPointMarkRewind() throws IOException {
+      final ByteArrayOutputStream bos = new ByteArrayOutputStream();
+
+      final Point point = pointFactory.createPoint("testMeasurement")
+         .tag("table", "3")
+         .tag("apple", "1")
+         .field("boolean", true)
+         .mark()
+         .tag("mouse", "2")
+         .field("double", 123456789.1234)
+         .writeToStream(bos);
+
+      Assert.assertEquals("testMeasurement,apple=1,mouse=2,table=3 boolean=t,double=123456789.1234", bos.toString());
+
+      bos.reset();
+
+      point.rewind()
+         .tag("zebra", "4")
+         .field("double", 987654321.9876)
+         .writeToStream(bos);
+
+      Assert.assertEquals("testMeasurement,apple=1,table=3,zebra=4 boolean=t,double=987654321.9876", bos.toString());
+
+      bos.reset();
+
+      point.rewind()
+         .measurement("testMeasurement2")
+         .tag("zebra", "4")
+         .field("double", 12121212.1212)
+         .writeToStream(bos);
+
+      Assert.assertEquals("testMeasurement2,apple=1,table=3,zebra=4 boolean=t,double=12121212.1212", bos.toString());
+
+      point.release();
+   }
 }
