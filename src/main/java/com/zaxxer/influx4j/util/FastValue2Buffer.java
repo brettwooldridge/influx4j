@@ -28,8 +28,8 @@ import stormpot.Timeout;
 
 import com.zaxxer.influx4j.util.fastdouble.FastDtoaBuffer;
 
-/**
- * Created by brettw on 2017/10/30.
+ /**
+ * @author brett.wooldridge at gmail.com
  */
 public class FastValue2Buffer
 {
@@ -66,7 +66,7 @@ public class FastValue2Buffer
    //      10000000000000000000L    -- too big for signed long
 
    private static final Timeout TIMEOUT = new Timeout(Long.MAX_VALUE, TimeUnit.DAYS);
-   
+
    private static final BlazePool<FastDtoaBuffer> dtoaPool;
 
    private static final int NO_NEGATIVE_OFFSET = 0;

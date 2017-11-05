@@ -19,6 +19,8 @@
 package com.zaxxer.influx4j.util;
 
 /**
+ * @author brett.wooldridge at gmail.com
+ *
  * References:
  *   http://svn.python.org/projects/python/trunk/Objects/listsort.txt
  *   http://svn.python.org/projects/python/trunk/Objects/listobject.c

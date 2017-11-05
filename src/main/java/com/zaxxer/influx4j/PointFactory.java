@@ -25,8 +25,8 @@ import stormpot.Timeout;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
-/**
- * Created by brettw on 2017/10/31.
+ /**
+ * @author brett.wooldridge at gmail.com
  */
 @SuppressWarnings("WeakerAccess")
 public class PointFactory {
