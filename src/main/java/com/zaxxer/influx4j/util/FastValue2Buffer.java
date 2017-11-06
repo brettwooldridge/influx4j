@@ -17,7 +17,6 @@
 package com.zaxxer.influx4j.util;
 
 import java.nio.ByteBuffer;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
 import stormpot.Allocator;
@@ -31,8 +30,7 @@ import com.zaxxer.influx4j.util.fastdouble.FastDtoaBuffer;
  /**
  * @author brett.wooldridge at gmail.com
  */
-public class FastValue2Buffer
-{
+public class FastValue2Buffer {
    private static final int[] DE_BRUIJN_TABLE = {
            63,  0, 58,  1, 59, 47, 53,  2,
            60, 39, 48, 27, 54, 33, 42,  3,
