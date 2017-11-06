@@ -54,10 +54,19 @@
          <scope>compile</scope>
       </dependency>
       <dependency>
+         <groupId>com.github.marianobarrios</groupId>
+         <artifactId>tls-channel</artifactId>
+         <version>0.1.0</version>
+      </dependency>
+      <dependency>
+         <groupId>org.jctools</groupId>
+         <artifactId>jctools-core</artifactId>
+         <version>2.1.1</version>
+      </dependency>
+      <dependency>
          <groupId>org.slf4j</groupId>
          <artifactId>slf4j-api</artifactId>
-         <version>1.7.13</version>
-         <scope>provided</scope>
+         <version>1.7.16</version>
       </dependency>
       <dependency>
          <groupId>junit</groupId>

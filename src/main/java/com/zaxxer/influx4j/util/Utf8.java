@@ -18,7 +18,19 @@ package com.zaxxer.influx4j.util;
 import static java.lang.Character.MAX_SURROGATE;
 import static java.lang.Character.MIN_SURROGATE;
 
+import java.lang.reflect.Method;
+
 public class Utf8 {
+   public static boolean containsUnicode(final String string) {
+      for (int i = 0; i < string.length(); i++) {
+         if (string.charAt(i) > 0x7f) {
+            return true;
+         }
+      }
+
+      return false;
+   }
+
    /**
     * Returns the number of bytes in the UTF-8-encoded form of {@code sequence}. For a string, this
     * method is equivalent to {@code string.getBytes(UTF_8).length}, but is more efficient in both

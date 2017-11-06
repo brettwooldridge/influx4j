@@ -11,7 +11,7 @@
   // When opening a file, `editor.tabSize` and `editor.insertSpaces` will be detected based on the file contents.
   "editor.detectIndentation": false,
 
-  "java.configuration.updateBuildConfiguration": "interactive",
+"java.configuration.updateBuildConfiguration": "interactive",
 
   // When enabled, will trim trailing whitespace when saving a file.
   "files.trimTrailingWhitespace": true,
