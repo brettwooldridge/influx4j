@@ -17,6 +17,7 @@
 package com.zaxxer.influx4j;
 
 import com.zaxxer.influx4j.util.PrimitiveArraySort;
+
 import stormpot.Poolable;
 import stormpot.Slot;
 
@@ -116,6 +117,10 @@ public class Point implements Poolable, AutoCloseable {
    public Point measurement(final String measurement) {
       buffer.serializeMeasurement(measurement);
       return this;
+   }
+
+   void finalizePoint(final ByteBuffer byteBuffer) {
+
    }
 
    int writeToChannel(final GatheringByteChannel channel) throws IOException {
