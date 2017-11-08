@@ -16,11 +16,6 @@
 
 package com.zaxxer.influx4j;
 
-import com.zaxxer.influx4j.util.PrimitiveArraySort;
-
-import stormpot.Poolable;
-import stormpot.Slot;
-
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
@@ -28,6 +23,15 @@ import java.nio.channels.GatheringByteChannel;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
+import com.zaxxer.influx4j.util.PrimitiveArraySort;
+import org.jctools.queues.MessagePassingQueue;
+import stormpot.Poolable;
+import stormpot.Slot;
+
+import static com.zaxxer.influx4j.BufferPoolManager.PoolableByteBuffer;
+import static com.zaxxer.influx4j.BufferPoolManager.borrow128Buffer;
+import static com.zaxxer.influx4j.BufferPoolManager.borrow512Buffer;
+import static com.zaxxer.influx4j.BufferPoolManager.borrow4096Buffer;
 import static com.zaxxer.influx4j.util.FastValue2Buffer.writeDoubleToBuffer;
 import static com.zaxxer.influx4j.util.FastValue2Buffer.writeLongToBuffer;
 import static com.zaxxer.influx4j.util.Utf8.containsUnicode;
@@ -46,6 +50,7 @@ public class Point implements Poolable, AutoCloseable {
    private final String[] tagValues;
    private final int[] tagSort;
    private final Slot slot;
+
    private Long timestamp;
    private int tagKeyIndex;
    private int tagKeyMark;
@@ -55,8 +60,9 @@ public class Point implements Poolable, AutoCloseable {
       this.tagKeys = new String[MAX_TAG_COUNT];
       this.tagSort = new int[MAX_TAG_COUNT];
       this.tagValues = new String[MAX_TAG_COUNT];
-      this.buffer = new AggregateBuffer();
       this.tagKeyComparator = new ParallelTagArrayComparator(tagKeys);
+      this.buffer = new AggregateBuffer();
+      this.buffer.reset();
    }
 
    public Point tag(final String tag, final String value) {
@@ -119,11 +125,15 @@ public class Point implements Poolable, AutoCloseable {
       return this;
    }
 
-   void finalizePoint(final ByteBuffer byteBuffer) {
 
+   void enqueueForWrite(final MessagePassingQueue<PoolableByteBuffer> queue) {
+      finalizeBuffers();
+      buffer.enqueueForWrite(queue);
+
+      reset();
    }
 
-   int writeToChannel(final GatheringByteChannel channel) throws IOException {
+   void finalizeBuffers() {
       if (!buffer.hasField) {
          throw new IllegalStateException("Point must have at least one field");
       }
@@ -144,37 +154,9 @@ public class Point implements Poolable, AutoCloseable {
       if (timestamp != null) {
          buffer.serializeTimestamp(timestamp);
       }
-
-      return buffer.write(channel);
    }
 
-   Point writeToStream(final OutputStream stream) throws IOException {
-      if (!buffer.hasField) {
-         throw new IllegalStateException("Point must have at least one field");
-      }
-
-      if (tagKeyIndex > 0) {
-         final int tagCount = tagKeyIndex;
-         for (int i = 0; i < tagCount; i++) {
-            tagSort[i] = i;
-         }
-
-         PrimitiveArraySort.sort(tagSort, tagCount, tagKeyComparator);
-         for (int i = 0; i < tagCount; i++) {
-            final int ndx = tagSort[i];
-            buffer.serializeTag(tagKeys[ndx], tagValues[ndx]);
-         }
-      }
-
-      if (timestamp != null) {
-         buffer.serializeTimestamp(timestamp);
-      }
-
-      buffer.write(stream);
-      return this;
-   }
-
-   private void reset() {
+   void reset() {
       Arrays.fill(tagKeys, null);
       Arrays.fill(tagValues, null);
       tagKeyIndex = 0;
@@ -189,33 +171,46 @@ public class Point implements Poolable, AutoCloseable {
     */
 
    private static final class AggregateBuffer {
-      private static final int INITIAL_BUFFER_SIZES = 256;
+      private static final int MAX_BUFFER_COUNTS = Integer.getInteger("com.zaxxer.influx4j.maxBuffersPerPoint", 64);
 
+      private final PoolableByteBuffer[] poolTagBuffers;
+      private final PoolableByteBuffer[] poolFieldBuffers;
       private ByteBuffer tagsBuffer;
-      private ByteBuffer dataBuffer;
-      private ByteBuffer[] unitedBuffers;
+      private ByteBuffer fieldBuffer;
       private boolean hasField;
+      private int tagBufferNdx;
+      private int fieldBufferNdx;
 
       AggregateBuffer() {
-         this.tagsBuffer = ByteBuffer.allocate(INITIAL_BUFFER_SIZES);
-         this.dataBuffer = ByteBuffer.allocate(INITIAL_BUFFER_SIZES).put((byte) ' ');
-         unitedBuffers = new ByteBuffer[] {tagsBuffer, dataBuffer};
+         this.poolTagBuffers = new PoolableByteBuffer[MAX_BUFFER_COUNTS];
+         this.poolFieldBuffers = new PoolableByteBuffer[MAX_BUFFER_COUNTS];
       }
 
       private void mark() {
          tagsBuffer.mark();
-         dataBuffer.mark();
+         fieldBuffer.mark();
       }
 
       private void rewind() {
          tagsBuffer.reset();
-         dataBuffer.reset();
+         fieldBuffer.reset();
       }
 
       private void reset() {
-         tagsBuffer.clear();
-         dataBuffer.clear();
-         dataBuffer.put((byte) ' ');
+         Arrays.fill(poolTagBuffers, null);
+         Arrays.fill(poolFieldBuffers, null);
+
+         tagBufferNdx = 0;
+         fieldBufferNdx = 0;
+
+         PoolableByteBuffer tmpTagBuffer = borrow128Buffer();
+         poolTagBuffers[tagBufferNdx++] = tmpTagBuffer;
+         tagsBuffer = tmpTagBuffer.getBuffer();
+
+         tmpTagBuffer = borrow128Buffer();
+         poolFieldBuffers[fieldBufferNdx++] = tmpTagBuffer;
+         fieldBuffer = tmpTagBuffer.getBuffer();
+         fieldBuffer.put((byte) ' ');
          hasField = false;
       }
 
@@ -245,10 +240,10 @@ public class Point implements Poolable, AutoCloseable {
 
          addFieldSeparator();
          escapeFieldKey(field, containsUnicode(field));
-         dataBuffer.put((byte) '=');
-         dataBuffer.put((byte) '"');
+         fieldBuffer.put((byte) '=');
+         fieldBuffer.put((byte) '"');
          escapeFieldValue(value, containsUnicode(value));
-         dataBuffer.put((byte) '"');
+         fieldBuffer.put((byte) '"');
       }
 
       private void serializeLongField(final String field, final long value) {
@@ -256,10 +251,10 @@ public class Point implements Poolable, AutoCloseable {
 
          addFieldSeparator();
          escapeFieldKey(field, containsUnicode(field));
-         dataBuffer.put((byte) '=');
+         fieldBuffer.put((byte) '=');
          ensureFieldBufferCapacity(21);
-         writeLongToBuffer(value, dataBuffer);
-         dataBuffer.put((byte) 'i');
+         writeLongToBuffer(value, fieldBuffer);
+         fieldBuffer.put((byte) 'i');
       }
 
       private void serializeDoubleField(final String field, final double value) {
@@ -267,9 +262,9 @@ public class Point implements Poolable, AutoCloseable {
 
          addFieldSeparator();
          escapeFieldKey(field, containsUnicode(field));
-         dataBuffer.put((byte) '=');
+         fieldBuffer.put((byte) '=');
          ensureFieldBufferCapacity(25);
-         writeDoubleToBuffer(value, dataBuffer);
+         writeDoubleToBuffer(value, fieldBuffer);
       }
 
       private void serializeBooleanField(final String field, final boolean value) {
@@ -277,14 +272,14 @@ public class Point implements Poolable, AutoCloseable {
 
          addFieldSeparator();
          escapeFieldKey(field, containsUnicode(field));
-         dataBuffer.put((byte) '=');
-         dataBuffer.put(value ? (byte) 't' : (byte) 'f');
+         fieldBuffer.put((byte) '=');
+         fieldBuffer.put(value ? (byte) 't' : (byte) 'f');
       }
 
       private void serializeTimestamp(final long timestamp) {
          ensureFieldBufferCapacity(21);
-         dataBuffer.put((byte) ' ');
-         writeLongToBuffer(timestamp, dataBuffer);
+         fieldBuffer.put((byte) ' ');
+         writeLongToBuffer(timestamp, fieldBuffer);
       }
 
       /*********************************************************************************************
@@ -298,12 +293,12 @@ public class Point implements Poolable, AutoCloseable {
 
       private void escapeFieldKey(final String key, final boolean isUnicode) {
          ensureFieldBufferCapacity(key, isUnicode);
-         escapeCommaEqualSpace(key, dataBuffer, isUnicode);
+         escapeCommaEqualSpace(key, fieldBuffer, isUnicode);
       }
 
       private void escapeFieldValue(final String value, final boolean isUnicode) {
          ensureFieldBufferCapacity(value, isUnicode);
-         escapeDoubleQuote(value, dataBuffer, isUnicode);
+         escapeDoubleQuote(value, fieldBuffer, isUnicode);
       }
 
       private void escapeCommaSpace(final String string, final ByteBuffer buffer) {
@@ -415,17 +410,37 @@ public class Point implements Poolable, AutoCloseable {
 
       private void ensureTagBufferCapacity(final int len) {
          if (tagsBuffer.remaining() < len) {
-            final ByteBuffer newBuffer = ByteBuffer.allocate(tagsBuffer.capacity() * 4);
-            newBuffer.put(tagsBuffer.array(), 0, tagsBuffer.limit());
-            tagsBuffer = newBuffer;
+            final PoolableByteBuffer newBuffer;
+            if (tagBufferNdx > 7) {
+               newBuffer = borrow4096Buffer();
+            }
+            else if (tagBufferNdx > 3) {
+               newBuffer = borrow512Buffer();
+            }
+            else {
+               newBuffer = borrow128Buffer();
+            }
+
+            poolTagBuffers[tagBufferNdx++] = newBuffer;
+            tagsBuffer = newBuffer.getBuffer();
          }
       }
 
       private void ensureFieldBufferCapacity(final int len) {
-         if (dataBuffer.remaining() < len) {
-            final ByteBuffer newBuffer = ByteBuffer.allocate(dataBuffer.capacity() * 4);
-            newBuffer.put(dataBuffer.array(), 0, dataBuffer.limit());
-            dataBuffer = newBuffer;
+         if (fieldBuffer.remaining() < len) {
+            final PoolableByteBuffer newBuffer;
+            if (fieldBufferNdx > 7) {
+               newBuffer = borrow4096Buffer();
+            }
+            else if (fieldBufferNdx > 3) {
+               newBuffer = borrow512Buffer();
+            }
+            else {
+               newBuffer = borrow128Buffer();
+            }
+
+            poolFieldBuffers[fieldBufferNdx++] = newBuffer;
+            fieldBuffer = newBuffer.getBuffer();
          }
       }
 
@@ -436,34 +451,24 @@ public class Point implements Poolable, AutoCloseable {
       private void addFieldSeparator() {
          ensureFieldBufferCapacity(1);
          if (hasField) {
-            dataBuffer.put((byte) ',');
+            fieldBuffer.put((byte) ',');
          }
 
          hasField = true;
       }
 
-      private void write(final OutputStream outputStream) throws IOException {
-         outputStream.write(tagsBuffer.array(), 0, tagsBuffer.position());
-         outputStream.write(dataBuffer.array(), 0, dataBuffer.position());
-      }
+      private void enqueueForWrite(final MessagePassingQueue<PoolableByteBuffer> queue) {
+         for (int i = 0; i < tagBufferNdx; i++) {
+            if (!queue.offer(poolTagBuffers[i])) {
+               throw new RuntimeException("Queue capacity exceeded");
+            }
+         }
 
-      private int write(final GatheringByteChannel channel) throws IOException {
-         final int tagsBufLen = tagsBuffer.position();
-         final int dataBufLen = dataBuffer.position();
-
-         tagsBuffer.position(0);
-         dataBuffer.position(0);
-         tagsBuffer.limit(tagsBufLen);
-         dataBuffer.limit(dataBufLen);
-
-         channel.write(unitedBuffers);
-
-         tagsBuffer.limit(tagsBuffer.capacity());
-         dataBuffer.limit(dataBuffer.capacity());
-         tagsBuffer.position(tagsBufLen);
-         dataBuffer.position(dataBufLen);
-
-         return tagsBufLen + dataBufLen;
+         for (int i = 0; i < fieldBufferNdx; i++) {
+            if (!queue.offer(poolFieldBuffers[i])) {
+               throw new RuntimeException("Queue capacity exceeded");
+            }
+         }
       }
    }
 

@@ -244,7 +244,7 @@ public class LineProtocolTest {
       }
    }
 
-   @Test
+   // @Test
    public void testPointMarkRewind() throws IOException {
       final ByteArrayOutputStream bos = new ByteArrayOutputStream();
 

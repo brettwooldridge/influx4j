@@ -34,9 +34,9 @@ class BufferPoolManager {
    private static final BlazePool<PoolableByteBuffer> pool4096;
 
    static {
-      final Config<PoolableByteBuffer> config128 = new Config<>().setAllocator(new ByteBuffer128Allocator());
-      final Config<PoolableByteBuffer> config512 = new Config<>().setAllocator(new ByteBuffer512Allocator());
-      final Config<PoolableByteBuffer> config4096 = new Config<>().setAllocator(new ByteBuffer4096Allocator());
+      final Config<PoolableByteBuffer> config128 = new Config<>().setAllocator(new ByteBuffer128Allocator()).setSize(4096);
+      final Config<PoolableByteBuffer> config512 = new Config<>().setAllocator(new ByteBuffer512Allocator()).setSize(1024);
+      final Config<PoolableByteBuffer> config4096 = new Config<>().setAllocator(new ByteBuffer4096Allocator()).setSize(128);
 
       pool128 = new BlazePool<>(config128);
       pool512 = new BlazePool<>(config512);
@@ -46,6 +46,7 @@ class BufferPoolManager {
    static PoolableByteBuffer borrow128Buffer() {
       try {
          final PoolableByteBuffer buffer = pool128.claim(TIMEOUT);
+         buffer.clear();
          return buffer;
       }
       catch (InterruptedException e) {
@@ -56,6 +57,7 @@ class BufferPoolManager {
    static PoolableByteBuffer borrow512Buffer() {
       try {
          final PoolableByteBuffer buffer = pool512.claim(TIMEOUT);
+         buffer.clear();
          return buffer;
       }
       catch (InterruptedException e) {
@@ -66,6 +68,7 @@ class BufferPoolManager {
    static PoolableByteBuffer borrow4096Buffer() {
       try {
          final PoolableByteBuffer buffer = pool4096.claim(TIMEOUT);
+         buffer.clear();
          return buffer;
       }
       catch (InterruptedException e) {
@@ -122,7 +125,7 @@ class BufferPoolManager {
    /**
     * An poolable wrapper around a ByteBuffer.
     */
-    private static class PoolableByteBuffer implements Poolable {
+    static class PoolableByteBuffer implements Poolable {
       private final Slot slot;
       private final ByteBuffer buffer;
 
@@ -133,6 +136,10 @@ class BufferPoolManager {
 
       ByteBuffer getBuffer() {
          return buffer;
+      }
+
+      void clear() {
+         buffer.clear();
       }
 
       @Override

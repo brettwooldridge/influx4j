@@ -36,6 +36,7 @@ public class PointFactory {
 
    private PointFactory(final Config<Point> config) {
       pointPool = new BlazePool<>(config);
+      pointPool.setTargetSize(8);
    }
 
    public static Builder builder() {

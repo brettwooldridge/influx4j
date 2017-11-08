@@ -34,6 +34,9 @@ import javax.net.ssl.SSLContext;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import org.jctools.queues.MpscArrayQueue;
+
+import com.zaxxer.influx4j.BufferPoolManager.PoolableByteBuffer;
+
 import tlschannel.ClientTlsChannel;
 
 
@@ -305,7 +308,7 @@ public class InfluxDB implements AutoCloseable {
 
    private static class EncapsulatedConnection implements Runnable {
       private final ByteChannel channel;
-      private final MpscArrayQueue<Point> pointQueue;
+      private final MpscArrayQueue<PoolableByteBuffer> poolableBufferQueue;
       private final String url;
       private final long autoFlushPeriod;
       private volatile boolean shutdown;
@@ -317,7 +320,7 @@ public class InfluxDB implements AutoCloseable {
          this.url = url;
          this.channel = channel;
          this.autoFlushPeriod = autoFlushPeriod;
-         this.pointQueue = new MpscArrayQueue<>(64 * 1024);
+         this.poolableBufferQueue = new MpscArrayQueue<>(64 * 1024);
 
          final Thread flusher = threadFactory.newThread(this);
          flusher.setDaemon(true);
@@ -325,9 +328,7 @@ public class InfluxDB implements AutoCloseable {
       }
 
       void write(final Point point) {
-         if (!pointQueue.offer(point)) {
-            // TODO: queue is full?  force a write?
-         }
+         point.enqueueForWrite(poolableBufferQueue);
       }
 
       void close() {
@@ -343,35 +344,39 @@ public class InfluxDB implements AutoCloseable {
       @Override
       public void run() {
          final GatheringByteChannel byteChannel = (GatheringByteChannel) channel;
-         int written = 0;
+         final PoolableByteBuffer[] buffers = new PoolableByteBuffer[poolableBufferQueue.capacity()];
+         int bytesPending = 0;
+
          while (!shutdown) {
             do {
-               try (final Point point = pointQueue.poll()) {
-                  if (point == null) break;
-                  if (written == 0) {
-                     writeHttpRequestHeaders();
-                  }
+               final PoolableByteBuffer poolableBuffer = poolableBufferQueue.poll();
+               if (poolableBuffer == null) break;
 
-                  written += point.writeToChannel(byteChannel);
-               }   
+               if (bytesPending == 0) {
+                  writeHttpRequestHeaders();
+               }
+
+               final ByteBuffer byteBuffer = poolableBuffer.getBuffer();
+
+               written += point.writeToChannel(byteChannel);
             } while (!shutdown && written < SNDRCV_BUFFER_SIZE - (64 * 1024));
 
             if (written > 0) {
-               // 
+               //
             }
                   LockSupport.parkNanos(autoFlushPeriod);
 
             }
-            catch (final IOException ioe) {
-               // TODO: What? Log? Pretty spammy...
-            }
+            // catch (final IOException ioe) {
+            //    // TODO: What? Log? Pretty spammy...
+            // }
          }
       }
 
       private void writeHttpRequestHeaders() {
-         final ByteBuffer buffer = ByteBuffer.allocate(512);
-         buffer.put("POST  ")
-         channel.write(src)
+         // final ByteBuffer buffer = ByteBuffer.allocate(512);
+         // buffer.put("POST  ")
+         // channel.write(src)
       }
    }
 }
