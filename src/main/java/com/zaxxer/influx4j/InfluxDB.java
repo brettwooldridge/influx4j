@@ -20,8 +20,8 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.StandardSocketOptions;
 import java.net.URI;
-import java.net.URL;
 import java.net.URLEncoder;
+import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.locks.LockSupport;
@@ -31,13 +31,13 @@ import java.nio.channels.DatagramChannel;
 import java.nio.channels.GatheringByteChannel;
 import java.nio.channels.SocketChannel;
 import javax.net.ssl.SSLContext;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-
-import org.jctools.queues.MpscArrayQueue;
 
 import com.zaxxer.influx4j.BufferPoolManager.PoolableByteBuffer;
-
+import org.jctools.queues.MpscArrayQueue;
 import tlschannel.ClientTlsChannel;
+
+import static com.zaxxer.influx4j.util.FastValue2Buffer.writeLongToBuffer;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 
 /**
@@ -281,12 +281,12 @@ public class InfluxDB implements AutoCloseable {
                return false;
             }
          }
-         throw new IOException("Unexpected response during connection validation: " + response);
+         throw new IOException("Unexpected end-of-stream during connection validation");
       }
 
       private String createBaseURL() {
          try {
-            String query = "POST /write/?db=" + URLEncoder.encode(database, "utf8")
+            String query = "?db=" + URLEncoder.encode(database, "utf8")
                + "&consistency=" + consistency
                + "&precision=" + precision
                + "&rp=" + URLEncoder.encode(retentionPolicy, "utf8");
@@ -298,7 +298,7 @@ public class InfluxDB implements AutoCloseable {
                query += "&p=" + URLEncoder.encode(password, "utf8");
             }
 
-            return new URI(protocol.toString(), null, host, port, "/", query, null).toASCIIString();
+            return new URI(protocol.toString(), null, host, port, "/write", query, null).toASCIIString();
          }
          catch (final Exception e) {
             throw new RuntimeException(e);
@@ -306,11 +306,17 @@ public class InfluxDB implements AutoCloseable {
       }
    }
 
+   /**
+    *
+    */
    private static class EncapsulatedConnection implements Runnable {
       private final ByteChannel channel;
-      private final MpscArrayQueue<PoolableByteBuffer> poolableBufferQueue;
+      private final MpscArrayQueue<Point> pointQueue;
+      private final ArrayList<PoolableByteBuffer> pendingQueue;
+      private final PoolableByteBuffer httpHeaders;
       private final String url;
       private final long autoFlushPeriod;
+      private final int contentLengthOffset;
       private volatile boolean shutdown;
 
       EncapsulatedConnection(final String url,
@@ -320,7 +326,10 @@ public class InfluxDB implements AutoCloseable {
          this.url = url;
          this.channel = channel;
          this.autoFlushPeriod = autoFlushPeriod;
-         this.poolableBufferQueue = new MpscArrayQueue<>(64 * 1024);
+         this.pointQueue = new MpscArrayQueue<>(64 * 1024);
+         this.pendingQueue = new ArrayList<>(512);
+         this.httpHeaders = new PoolableByteBuffer(null, 512);
+         this.contentLengthOffset = setupHttpHeaderBuffer();
 
          final Thread flusher = threadFactory.newThread(this);
          flusher.setDaemon(true);
@@ -328,7 +337,9 @@ public class InfluxDB implements AutoCloseable {
       }
 
       void write(final Point point) {
-         point.enqueueForWrite(poolableBufferQueue);
+         if (!pointQueue.offer(point)) {
+            throw new RuntimeException("Point queue overflow.  Exceeded capacity of " + pointQueue.capacity() + ".");
+         }
       }
 
       void close() {
@@ -343,40 +354,63 @@ public class InfluxDB implements AutoCloseable {
 
       @Override
       public void run() {
-         final GatheringByteChannel byteChannel = (GatheringByteChannel) channel;
-         final PoolableByteBuffer[] buffers = new PoolableByteBuffer[poolableBufferQueue.capacity()];
          int bytesPending = 0;
-
          while (!shutdown) {
             do {
-               final PoolableByteBuffer poolableBuffer = poolableBufferQueue.poll();
-               if (poolableBuffer == null) break;
-
-               if (bytesPending == 0) {
-                  writeHttpRequestHeaders();
+               if (pendingQueue.isEmpty()) {
+                  pendingQueue.add(httpHeaders);
                }
 
-               final ByteBuffer byteBuffer = poolableBuffer.getBuffer();
+               try (final Point point = pointQueue.poll()) {
+                  if (point == null) break;
+                  bytesPending += point.enqueueBuffers(pendingQueue);
+               }
+            } while (!shutdown && bytesPending < SNDRCV_BUFFER_SIZE - (64 * 1024));
 
-               written += point.writeToChannel(byteChannel);
-            } while (!shutdown && written < SNDRCV_BUFFER_SIZE - (64 * 1024));
-
-            if (written > 0) {
-               //
+            if (pendingQueue.size() > 1) {
+               try {
+                  flushBuffers(bytesPending);
+                  bytesPending = 0;
+               }
+               catch (final IOException ioe) {
+                  // TODO: What? Log? Pretty spammy...
+                  ioe.printStackTrace();
+               }
             }
-                  LockSupport.parkNanos(autoFlushPeriod);
 
+            if (pointQueue.isEmpty() && !shutdown) {
+               LockSupport.parkNanos(autoFlushPeriod);
             }
-            // catch (final IOException ioe) {
-            //    // TODO: What? Log? Pretty spammy...
-            // }
          }
       }
 
-      private void writeHttpRequestHeaders() {
-         // final ByteBuffer buffer = ByteBuffer.allocate(512);
-         // buffer.put("POST  ")
-         // channel.write(src)
+      private int setupHttpHeaderBuffer() {
+         final ByteBuffer buffer = httpHeaders.getBuffer();
+         buffer.put("POST  ".getBytes());
+         buffer.put(url.getBytes());
+         buffer.put((byte) '\r');
+         buffer.put((byte) '\n');
+         buffer.put("Content-Length: ".getBytes());
+         return buffer.position();
+      }
+
+      private void flushBuffers(final int bytesPending) throws IOException {
+         final ByteBuffer contentLengthBuffer = httpHeaders.getBuffer();
+         writeLongToBuffer(bytesPending, contentLengthBuffer);
+         contentLengthBuffer.put((byte) '\r').put((byte) '\n').put((byte) '\r').put((byte) '\n').flip();
+
+         final GatheringByteChannel byteChannel = (GatheringByteChannel) channel;
+         final ArrayList<PoolableByteBuffer> buffers = pendingQueue;
+
+         final int bufferCount = buffers.size();
+         for (int i = 0; i < bufferCount; i++) {
+            try (final PoolableByteBuffer buffer = buffers.get(i)) {
+               byteChannel.write(buffer.getBuffer());
+            }
+         }
+
+         buffers.clear();
+         contentLengthBuffer.clear().position(contentLengthOffset);
       }
    }
 }

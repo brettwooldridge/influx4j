@@ -25,6 +25,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
+import com.zaxxer.influx4j.util.DaemonThreadFactory;
 import static java.lang.System.identityHashCode;
 
 /**
@@ -36,11 +37,7 @@ public class LineProtocolTest {
    @Before
    public void createFactory() {
       pointFactory = PointFactory.builder()
-            .setThreadFactory(r -> {
-               Thread t = new Thread(r);
-               t.setDaemon(true);
-               return t;
-            })
+            .setThreadFactory(new DaemonThreadFactory())
             .build();
    }
 
@@ -63,7 +60,7 @@ public class LineProtocolTest {
             .field("boolean", true)
             .writeToStream(bos);
 
-      Assert.assertEquals("testMeasurement boolean=t", bos.toString());
+      Assert.assertEquals("testMeasurement boolean=t\n", bos.toString());
    }
 
    @Test
@@ -73,14 +70,14 @@ public class LineProtocolTest {
       pointFactory.createPoint("com,ma")
             .field("boolean", true)
             .writeToStream(bos);
-      Assert.assertEquals("com\\,ma boolean=t", bos.toString());
+      Assert.assertEquals("com\\,ma boolean=t\n", bos.toString());
 
       bos.reset();
 
       pointFactory.createPoint("sp ace")
             .field("boolean", true)
             .writeToStream(bos);
-      Assert.assertEquals("sp\\ ace boolean=t", bos.toString());
+      Assert.assertEquals("sp\\ ace boolean=t\n", bos.toString());
    }
 
    @Test
@@ -91,7 +88,7 @@ public class LineProtocolTest {
            .field("string", "This is a test")
            .writeToStream(bos);
 
-      Assert.assertEquals("testMeasurement string=\"This is a test\"", bos.toString());
+      Assert.assertEquals("testMeasurement string=\"This is a test\"\n", bos.toString());
    }
 
    @Test
@@ -102,7 +99,7 @@ public class LineProtocolTest {
             .field("string", "This \"is\" a test")
             .writeToStream(bos);
 
-      Assert.assertEquals("testMeasurement string=\"This \\\"is\\\" a test\"", bos.toString());
+      Assert.assertEquals("testMeasurement string=\"This \\\"is\\\" a test\"\n", bos.toString());
    }
 
 
@@ -116,7 +113,7 @@ public class LineProtocolTest {
             .field("sp ace", 3)
             .writeToStream(bos);
 
-      Assert.assertEquals("testMeasurement com\\,ma=1i,eq\\=ual=2i,sp\\ ace=3i", bos.toString());
+      Assert.assertEquals("testMeasurement com\\,ma=1i,eq\\=ual=2i,sp\\ ace=3i\n", bos.toString());
    }
 
    @Test
@@ -127,7 +124,7 @@ public class LineProtocolTest {
             .field("long", 123456)
             .writeToStream(bos);
 
-      Assert.assertEquals("testMeasurement long=123456i", bos.toString());
+      Assert.assertEquals("testMeasurement long=123456i\n", bos.toString());
    }
 
    @Test
@@ -139,7 +136,7 @@ public class LineProtocolTest {
             .field("double", 123456.789d)
             .writeToStream(bos);
 
-      Assert.assertEquals("testMeasurement boolean=t,double=123456.789", bos.toString());
+      Assert.assertEquals("testMeasurement boolean=t,double=123456.789\n", bos.toString());
    }
 
    @Test
@@ -152,7 +149,7 @@ public class LineProtocolTest {
             .field("boolean", true)
             .writeToStream(bos);
 
-      Assert.assertEquals("testMeasurement string=\"This is a test\",long=-9223372036854775808i,boolean=t", bos.toString());
+      Assert.assertEquals("testMeasurement string=\"This is a test\",long=-9223372036854775808i,boolean=t\n", bos.toString());
    }
 
    @Test
@@ -164,7 +161,7 @@ public class LineProtocolTest {
               .timestamp(1509428908609L, TimeUnit.MILLISECONDS)
               .writeToStream(bos);
 
-      Assert.assertEquals("testMeasurement boolean=t 1509428908609000000", bos.toString());
+      Assert.assertEquals("testMeasurement boolean=t 1509428908609000000\n", bos.toString());
    }
 
    @Test
@@ -176,7 +173,7 @@ public class LineProtocolTest {
               .field("boolean", true)
               .writeToStream(bos);
 
-      Assert.assertEquals("testMeasurement,tag1=one boolean=t", bos.toString());
+      Assert.assertEquals("testMeasurement,tag1=one boolean=t\n", bos.toString());
    }
 
    @Test
@@ -189,7 +186,7 @@ public class LineProtocolTest {
               .field("boolean", true)
               .writeToStream(bos);
 
-      Assert.assertEquals("testMeasurement,tag1=one,tag2=two boolean=t", bos.toString());
+      Assert.assertEquals("testMeasurement,tag1=one,tag2=two boolean=t\n", bos.toString());
    }
 
    @Test
@@ -204,7 +201,7 @@ public class LineProtocolTest {
               .field("boolean", true)
               .writeToStream(bos);
 
-      Assert.assertEquals("testMeasurement,apple=1,mouse=2,table=3,zebra=4 boolean=t", bos.toString());
+      Assert.assertEquals("testMeasurement,apple=1,mouse=2,table=3,zebra=4 boolean=t\n", bos.toString());
    }
 
    @Test
@@ -222,7 +219,7 @@ public class LineProtocolTest {
                  .field("boolean", true);
 
          point1.writeToStream(bos);
-         Assert.assertEquals("testMeasurement,apple=1,mouse=2,zebra=3 boolean=t", bos.toString());
+         Assert.assertEquals("testMeasurement,apple=1,mouse=2,zebra=3 boolean=t\n", bos.toString());
 
          point1.release();
          bos.reset();
@@ -237,7 +234,7 @@ public class LineProtocolTest {
          point2.writeToStream(bos);
          point2.release();
 
-         Assert.assertEquals("testMeasurement2,chocolate=1,strawberry=2 boolean=f", bos.toString());
+         Assert.assertEquals("testMeasurement2,chocolate=1,strawberry=2 boolean=f\n", bos.toString());
       }
       finally {
          factory.shutdown();
@@ -257,7 +254,7 @@ public class LineProtocolTest {
          .field("double", 123456789.1234)
          .writeToStream(bos);
 
-      Assert.assertEquals("testMeasurement,apple=1,mouse=2,table=3 boolean=t,double=123456789.1234", bos.toString());
+      Assert.assertEquals("testMeasurement,apple=1,mouse=2,table=3 boolean=t,double=123456789.1234\n", bos.toString());
 
       bos.reset();
 
@@ -266,7 +263,7 @@ public class LineProtocolTest {
          .field("double", 987654321.9876)
          .writeToStream(bos);
 
-      Assert.assertEquals("testMeasurement,apple=1,table=3,zebra=4 boolean=t,double=987654321.9876", bos.toString());
+      Assert.assertEquals("testMeasurement,apple=1,table=3,zebra=4 boolean=t,double=987654321.9876\n", bos.toString());
 
       bos.reset();
 
@@ -276,7 +273,7 @@ public class LineProtocolTest {
          .field("double", 12121212.1212)
          .writeToStream(bos);
 
-      Assert.assertEquals("testMeasurement2,apple=1,table=3,zebra=4 boolean=t,double=12121212.1212", bos.toString());
+      Assert.assertEquals("testMeasurement2,apple=1,table=3,zebra=4 boolean=t,double=12121212.1212\n", bos.toString());
 
       point.release();
    }

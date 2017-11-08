@@ -19,7 +19,7 @@ package com.zaxxer.influx4j;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
-import java.nio.channels.GatheringByteChannel;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
@@ -125,12 +125,10 @@ public class Point implements Poolable, AutoCloseable {
       return this;
    }
 
-
-   void enqueueForWrite(final MessagePassingQueue<PoolableByteBuffer> queue) {
+   int enqueueBuffers(final ArrayList<PoolableByteBuffer> buffers) {
       finalizeBuffers();
-      buffer.enqueueForWrite(queue);
 
-      reset();
+      return buffer.enqueueBuffers(buffers);
    }
 
    void finalizeBuffers() {
@@ -165,6 +163,23 @@ public class Point implements Poolable, AutoCloseable {
       buffer.reset();
    }
 
+   /**
+    * Used for testing.
+    */
+   final ArrayList<PoolableByteBuffer> testing = new ArrayList<>();
+
+   Point writeToStream(final OutputStream os) throws IOException {
+      enqueueBuffers(testing);
+
+      for (PoolableByteBuffer poolableBuffer : testing) {
+         final ByteBuffer buffer = poolableBuffer.getBuffer();
+         os.write(buffer.array(), 0, buffer.limit());
+         poolableBuffer.release();
+      }
+
+      testing.clear();
+      return this;
+   }
 
    /***************************************************************************
     * Where all the magic happens...
@@ -197,8 +212,8 @@ public class Point implements Poolable, AutoCloseable {
       }
 
       private void reset() {
-         Arrays.fill(poolTagBuffers, null);
-         Arrays.fill(poolFieldBuffers, null);
+         // Arrays.fill(poolTagBuffers, null);
+         // Arrays.fill(poolFieldBuffers, null);
 
          tagBufferNdx = 0;
          fieldBufferNdx = 0;
@@ -212,6 +227,24 @@ public class Point implements Poolable, AutoCloseable {
          fieldBuffer = tmpTagBuffer.getBuffer();
          fieldBuffer.put((byte) ' ');
          hasField = false;
+      }
+
+      private int enqueueBuffers(final ArrayList<PoolableByteBuffer> buffers) {
+         ensureFieldBufferCapacity(1);
+         fieldBuffer.put((byte) '\n');
+
+         int contentLength = 0;
+         for (int i = 0; i < tagBufferNdx; i++) {
+            final PoolableByteBuffer buffer = poolTagBuffers[i];
+            contentLength += buffer.getBuffer().flip().position();
+            buffers.add(buffer);
+         }
+         for (int i = 0; i < fieldBufferNdx; i++) {
+            final PoolableByteBuffer buffer = poolFieldBuffers[i];
+            contentLength += buffer.getBuffer().flip().position();
+            buffers.add(buffer);
+         }
+         return contentLength;
       }
 
       /*********************************************************************************************

@@ -19,6 +19,8 @@ package com.zaxxer.influx4j;
 import java.nio.ByteBuffer;
 import java.util.concurrent.TimeUnit;
 
+import com.zaxxer.influx4j.util.DaemonThreadFactory;
+
 import stormpot.Allocator;
 import stormpot.BlazePool;
 import stormpot.Config;
@@ -34,9 +36,20 @@ class BufferPoolManager {
    private static final BlazePool<PoolableByteBuffer> pool4096;
 
    static {
-      final Config<PoolableByteBuffer> config128 = new Config<>().setAllocator(new ByteBuffer128Allocator()).setSize(4096);
-      final Config<PoolableByteBuffer> config512 = new Config<>().setAllocator(new ByteBuffer512Allocator()).setSize(1024);
-      final Config<PoolableByteBuffer> config4096 = new Config<>().setAllocator(new ByteBuffer4096Allocator()).setSize(128);
+      final DaemonThreadFactory threadFactory = new DaemonThreadFactory();
+
+      final Config<PoolableByteBuffer> config128 = new Config<>()
+         .setThreadFactory(threadFactory)
+         .setAllocator(new ByteBuffer128Allocator())
+         .setSize(4096);
+      final Config<PoolableByteBuffer> config512 = new Config<>()
+         .setThreadFactory(threadFactory)
+         .setAllocator(new ByteBuffer512Allocator())
+         .setSize(1024);
+      final Config<PoolableByteBuffer> config4096 = new Config<>()
+         .setThreadFactory(threadFactory)
+         .setAllocator(new ByteBuffer4096Allocator())
+         .setSize(128);
 
       pool128 = new BlazePool<>(config128);
       pool512 = new BlazePool<>(config512);
@@ -125,7 +138,7 @@ class BufferPoolManager {
    /**
     * An poolable wrapper around a ByteBuffer.
     */
-    static class PoolableByteBuffer implements Poolable {
+    static class PoolableByteBuffer implements Poolable, AutoCloseable {
       private final Slot slot;
       private final ByteBuffer buffer;
 
@@ -140,6 +153,11 @@ class BufferPoolManager {
 
       void clear() {
          buffer.clear();
+      }
+
+      @Override
+      public void close() {
+         slot.release(this);
       }
 
       @Override
