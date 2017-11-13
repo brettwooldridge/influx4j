@@ -236,12 +236,12 @@ public class Point implements Poolable, AutoCloseable {
          int contentLength = 0;
          for (int i = 0; i < tagBufferNdx; i++) {
             final PoolableByteBuffer buffer = poolTagBuffers[i];
-            contentLength += buffer.getBuffer().flip().position();
+            contentLength += buffer.getBuffer().flip().remaining();
             buffers.add(buffer);
          }
          for (int i = 0; i < fieldBufferNdx; i++) {
             final PoolableByteBuffer buffer = poolFieldBuffers[i];
-            contentLength += buffer.getBuffer().flip().position();
+            contentLength += buffer.getBuffer().flip().remaining();
             buffers.add(buffer);
          }
          return contentLength;
