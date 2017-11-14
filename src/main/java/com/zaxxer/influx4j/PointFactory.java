@@ -33,11 +33,7 @@ public class PointFactory {
    private static final Timeout TIMEOUT = new Timeout(Long.MAX_VALUE, TimeUnit.DAYS);
 
    private final BlazePool<Point> pointPool;
-
-   private PointFactory(final Config<Point> config) {
-      pointPool = new BlazePool<>(config);
-      pointPool.setTargetSize(512);
-   }
+   private final BufferPoolManager bufferPool;
 
    public static Builder builder() {
       return new Builder();
@@ -54,10 +50,16 @@ public class PointFactory {
       }
    }
 
-   public void shutdown() {
+   public void close() {
       pointPool.shutdown();
+      bufferPool.close();
    }
 
+   private PointFactory(final Config<Point> config, final BufferPoolManager bufferPool) {
+      this.pointPool = new BlazePool<>(config);
+      this.pointPool.setTargetSize(512);
+      this.bufferPool = bufferPool;
+   }
 
    /**
     * Builder for a {@link PointFactory} instance.  Call {@link PointFactory#builder()} to
@@ -68,8 +70,7 @@ public class PointFactory {
 
       private Builder() {
          config = new Config<>();
-         config.setAllocator(new PointAllocator());
-         config.setSize(1024);
+         config.setSize(4096);
       }
 
       public Builder setSize(final int size) {
@@ -83,7 +84,9 @@ public class PointFactory {
       }
 
       public PointFactory build() {
-         return new PointFactory(config);
+         final BufferPoolManager bufferPool = BufferPoolManager.leaseBufferPoolManager();
+         config.setAllocator(new PointAllocator(bufferPool));
+         return new PointFactory(config, bufferPool);
       }
    }
 
@@ -92,9 +95,15 @@ public class PointFactory {
     * {@code Allocator} used by StormPot for managing poolable object lifetimes.
     */
    private static class PointAllocator implements Allocator<Point> {
+      private final BufferPoolManager bufferPool;
+
+      private PointAllocator(final BufferPoolManager bufferPool) {
+         this.bufferPool = bufferPool;
+      }
+
       @Override
       public Point allocate(final Slot slot) throws Exception {
-         return new Point(slot);
+         return new Point(slot, bufferPool);
       }
 
       @Override

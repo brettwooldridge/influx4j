@@ -29,9 +29,6 @@ import stormpot.Poolable;
 import stormpot.Slot;
 
 import static com.zaxxer.influx4j.BufferPoolManager.PoolableByteBuffer;
-import static com.zaxxer.influx4j.BufferPoolManager.borrow128Buffer;
-import static com.zaxxer.influx4j.BufferPoolManager.borrow512Buffer;
-import static com.zaxxer.influx4j.BufferPoolManager.borrow4096Buffer;
 import static com.zaxxer.influx4j.util.FastValue2Buffer.writeDoubleToBuffer;
 import static com.zaxxer.influx4j.util.FastValue2Buffer.writeLongToBuffer;
 import static com.zaxxer.influx4j.util.Utf8.containsUnicode;
@@ -55,13 +52,13 @@ public class Point implements Poolable, AutoCloseable {
    private int tagKeyIndex;
    private int tagKeyMark;
 
-   Point(final Slot slot) {
+   Point(final Slot slot, final BufferPoolManager bufferPool) {
       this.slot = slot;
       this.tagKeys = new String[MAX_TAG_COUNT];
       this.tagSort = new int[MAX_TAG_COUNT];
       this.tagValues = new String[MAX_TAG_COUNT];
       this.tagKeyComparator = new ParallelTagArrayComparator(tagKeys);
-      this.buffer = new AggregateBuffer();
+      this.buffer = new AggregateBuffer(bufferPool);
       this.buffer.reset();
    }
 
@@ -176,7 +173,9 @@ public class Point implements Poolable, AutoCloseable {
    Point writeToStream(final OutputStream os) throws IOException {
       enqueueBuffers(testing);
 
-      for (PoolableByteBuffer poolableBuffer : testing) {
+      final int len = testing.size();
+      for (int i = 0; i < len; i++) {
+         final PoolableByteBuffer poolableBuffer = testing.get(i);
          final ByteBuffer buffer = poolableBuffer.getBuffer();
          os.write(buffer.array(), 0, buffer.limit());
          poolableBuffer.release();
@@ -193,6 +192,7 @@ public class Point implements Poolable, AutoCloseable {
    private static final class AggregateBuffer {
       private static final int MAX_BUFFER_COUNTS = Integer.getInteger("com.zaxxer.influx4j.maxBuffersPerPoint", 64);
 
+      private final BufferPoolManager bufferPool;
       private final PoolableByteBuffer[] poolTagBuffers;
       private final PoolableByteBuffer[] poolFieldBuffers;
       private ByteBuffer tagsBuffer;
@@ -201,7 +201,8 @@ public class Point implements Poolable, AutoCloseable {
       private int tagBufferNdx;
       private int fieldBufferNdx;
 
-      AggregateBuffer() {
+      AggregateBuffer(final BufferPoolManager bufferPool) {
+         this.bufferPool = bufferPool;
          this.poolTagBuffers = new PoolableByteBuffer[MAX_BUFFER_COUNTS];
          this.poolFieldBuffers = new PoolableByteBuffer[MAX_BUFFER_COUNTS];
       }
@@ -217,17 +218,17 @@ public class Point implements Poolable, AutoCloseable {
       }
 
       private void reset() {
-         // Arrays.fill(poolTagBuffers, null);
-         // Arrays.fill(poolFieldBuffers, null);
+         Arrays.fill(poolTagBuffers, null);
+         Arrays.fill(poolFieldBuffers, null);
 
          tagBufferNdx = 0;
          fieldBufferNdx = 0;
 
-         PoolableByteBuffer tmpTagBuffer = borrow128Buffer();
+         PoolableByteBuffer tmpTagBuffer = bufferPool.borrow128Buffer();
          poolTagBuffers[tagBufferNdx++] = tmpTagBuffer;
          tagsBuffer = tmpTagBuffer.getBuffer();
 
-         tmpTagBuffer = borrow128Buffer();
+         tmpTagBuffer = bufferPool.borrow128Buffer();
          poolFieldBuffers[fieldBufferNdx++] = tmpTagBuffer;
          fieldBuffer = tmpTagBuffer.getBuffer();
          fieldBuffer.put((byte) ' ');
@@ -450,13 +451,13 @@ public class Point implements Poolable, AutoCloseable {
          if (tagsBuffer.remaining() < len) {
             final PoolableByteBuffer newBuffer;
             if (tagBufferNdx > 7) {
-               newBuffer = borrow4096Buffer();
+               newBuffer = bufferPool.borrow4096Buffer();
             }
             else if (tagBufferNdx > 3) {
-               newBuffer = borrow512Buffer();
+               newBuffer = bufferPool.borrow512Buffer();
             }
             else {
-               newBuffer = borrow128Buffer();
+               newBuffer = bufferPool.borrow128Buffer();
             }
 
             poolTagBuffers[tagBufferNdx++] = newBuffer;
@@ -468,13 +469,13 @@ public class Point implements Poolable, AutoCloseable {
          if (fieldBuffer.remaining() < len) {
             final PoolableByteBuffer newBuffer;
             if (fieldBufferNdx > 7) {
-               newBuffer = borrow4096Buffer();
+               newBuffer = bufferPool.borrow4096Buffer();
             }
             else if (fieldBufferNdx > 3) {
-               newBuffer = borrow512Buffer();
+               newBuffer = bufferPool.borrow512Buffer();
             }
             else {
-               newBuffer = borrow128Buffer();
+               newBuffer = bufferPool.borrow128Buffer();
             }
 
             poolFieldBuffers[fieldBufferNdx++] = newBuffer;

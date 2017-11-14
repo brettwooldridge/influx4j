@@ -19,6 +19,7 @@ package com.zaxxer.influx4j;
 import java.nio.ByteBuffer;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import com.zaxxer.influx4j.util.DaemonThreadFactory;
 
@@ -29,14 +30,24 @@ import stormpot.Poolable;
 import stormpot.Slot;
 import stormpot.Timeout;
 
-class BufferPoolManager {
+class BufferPoolManager implements AutoCloseable {
    private static final Timeout TIMEOUT = new Timeout(Long.MAX_VALUE, TimeUnit.DAYS);
 
-   private static final BlazePool<PoolableByteBuffer> pool128;
-   private static final BlazePool<PoolableByteBuffer> pool512;
-   private static final BlazePool<PoolableByteBuffer> pool4096;
+   private final BlazePool<PoolableByteBuffer> pool128;
+   private final BlazePool<PoolableByteBuffer> pool512;
+   private final BlazePool<PoolableByteBuffer> pool4096;
 
-   static {
+   private static int leases;
+   private static BufferPoolManager bufferPoolManager;
+
+   static synchronized BufferPoolManager leaseBufferPoolManager() {
+      if (leases++ == 0) {
+         bufferPoolManager = new BufferPoolManager();
+      }
+      return bufferPoolManager;
+   }
+
+   private BufferPoolManager() {
       final DaemonThreadFactory threadFactory = new DaemonThreadFactory("Buffer");
 
       final Config<PoolableByteBuffer> config128 = new Config<>()
@@ -57,7 +68,7 @@ class BufferPoolManager {
       pool4096 = new BlazePool<>(config4096);
    }
 
-   static PoolableByteBuffer borrow128Buffer() {
+   PoolableByteBuffer borrow128Buffer() {
       try {
          final PoolableByteBuffer buffer = pool128.claim(TIMEOUT);
          buffer.clear();
@@ -68,7 +79,7 @@ class BufferPoolManager {
       }
    }
 
-   static PoolableByteBuffer borrow512Buffer() {
+   PoolableByteBuffer borrow512Buffer() {
       try {
          final PoolableByteBuffer buffer = pool512.claim(TIMEOUT);
          buffer.clear();
@@ -79,7 +90,7 @@ class BufferPoolManager {
       }
    }
 
-   static PoolableByteBuffer borrow4096Buffer() {
+   PoolableByteBuffer borrow4096Buffer() {
       try {
          final PoolableByteBuffer buffer = pool4096.claim(TIMEOUT);
          buffer.clear();
@@ -90,17 +101,21 @@ class BufferPoolManager {
       }
    }
 
+   @Override
+   public synchronized void close() {
+      if (--leases == 0) {
+         pool128.shutdown();
+         pool512.shutdown();
+         pool4096.shutdown();
+      }
+   }
 
    /**
     * An Allocator that allocates 128-byte ByteBuffers.
     */
    private static class ByteBuffer128Allocator implements Allocator<PoolableByteBuffer> {
-      private AtomicInteger allocs = new AtomicInteger();
       @Override
       public PoolableByteBuffer allocate(final Slot slot) throws Exception {
-         if (allocs.incrementAndGet() % 1000 == 0) {
-            System.out.println("Allocated " + allocs.get() + "th 128-byte buffer");
-         }
          return new PoolableByteBuffer(slot, 128);
       }
 
@@ -161,13 +176,11 @@ class BufferPoolManager {
 
       void clear() {
          buffer.clear();
-         // System.out.println(this.getClass() + "-" + size + " claims " + claims.incrementAndGet());
       }
 
       @Override
       public void close() {
          if (slot != null) {
-            // System.out.println(this.getClass() + "-" + size + " claims " + claims.decrementAndGet());
             slot.release(this);
          }
       }
@@ -175,7 +188,6 @@ class BufferPoolManager {
       @Override
       public void release() {
          if (slot != null) {
-            // System.out.println(this.getClass() + "-" + size + " claims " + claims.decrementAndGet());
             slot.release(this);
          }
       }

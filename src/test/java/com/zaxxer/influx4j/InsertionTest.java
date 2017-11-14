@@ -21,7 +21,6 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
 import com.zaxxer.influx4j.util.DaemonThreadFactory;
@@ -49,13 +48,14 @@ public class InsertionTest {
 
    @After
    public void shutdownFactory() {
-      pointFactory.shutdown();
+      pointFactory.close();
       influxDB.close();
    }
 
    @Test
    public void testSingleInsert() throws Exception {
 
+      System.err.println(System.currentTimeMillis() + " testSingleInsert() started.");
       final Point point = pointFactory.createPoint("testMeasurement")
          .tag("tag", "apple")
          .field("boolean", true);
@@ -65,13 +65,16 @@ public class InsertionTest {
 
       TimeUnit.MILLISECONDS.sleep(500);
 
+      System.err.println(System.currentTimeMillis() + " testSingleInsert() completed.");
+
       // TODO query and verify
    }
 
    @Test
    public void testMultipleInserts() throws Exception {
+      System.err.println(System.currentTimeMillis() + " testMultipleInserts() started.");
 
-      for (int i = 0; i < 1000; i++) {
+      for (int i = 0; i < 2000; i++) {
          final Point point = pointFactory.createPoint("testMeasurement")
             .tag("tag", "banana")
             .field("count", i);
@@ -80,6 +83,8 @@ public class InsertionTest {
       }
 
       TimeUnit.MILLISECONDS.sleep(500);
+
+      System.err.println(System.currentTimeMillis() + " testMultipleInserts() completed.");
 
       // TODO query and verify
    }

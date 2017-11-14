@@ -25,13 +25,13 @@ import java.util.concurrent.TimeUnit;
 @SuppressWarnings("unused")
 public class LineProtocolBench {
    @Param({ "influx4j", "influxdb" })
-   private String implementation;
+   private String driver;
 
    private PointAdapter pointAdapter;
 
    @Setup(Level.Trial)
    public void createAdapter() {
-      switch (implementation) {
+      switch (driver) {
          case "influx4j":
             pointAdapter = new Influx4jPointAdapter();
             break;

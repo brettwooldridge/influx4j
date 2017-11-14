@@ -38,7 +38,6 @@ import com.zaxxer.influx4j.BufferPoolManager.PoolableByteBuffer;
 import org.jctools.queues.MpscArrayQueue;
 import tlschannel.ClientTlsChannel;
 
-import static com.zaxxer.influx4j.BufferPoolManager.borrow512Buffer;
 import static com.zaxxer.influx4j.util.FastValue2Buffer.writeLongToBuffer;
 import static java.lang.System.nanoTime;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -104,6 +103,7 @@ public class InfluxDB implements AutoCloseable {
 
    private static final int SNDRCV_BUFFER_SIZE = Integer.getInteger("com.zaxxer.influx4j.sndrcvBufferSize", 1024 * 1024);
    private static final ConcurrentHashMap<String, EncapsulatedConnection> CONNECTIONS = new ConcurrentHashMap<>();
+   private static BufferPoolManager bufferPoolManager;
 
    private final EncapsulatedConnection connection;
 
@@ -360,10 +360,7 @@ public class InfluxDB implements AutoCloseable {
 
       void write(final Point point) {
          if (!pointQueue.offer(point)) {
-            throw new RuntimeException("Point queue overflow.  Exceeded capacity of " + pointQueue.capacity() + ".");
-         }
-         else {
-            System.err.println("Enqueued point " + point);
+            throw new RuntimeException(System.currentTimeMillis() + " Point queue overflow.  Exceeded capacity of " + pointQueue.capacity() + ".");
          }
       }
 
@@ -387,7 +384,6 @@ public class InfluxDB implements AutoCloseable {
          int bytesPending = 0;
          while (!shutdown) {
             final long startNs = nanoTime();
-            System.err.println("Starting loop.");
             do {
                if (pendingQueue.isEmpty()) {
                   pendingQueue.add(httpHeaders);
@@ -395,24 +391,18 @@ public class InfluxDB implements AutoCloseable {
 
                try (final Point point = pointQueue.poll()) {
                   if (point == null) break;
-                  System.out.println("Got point " + point);
                   bytesPending += point.enqueueBuffers(pendingQueue);
                }
             } while (bytesPending < SNDRCV_BUFFER_SIZE - (64 * 1024) && !shutdown);
 
             if (pendingQueue.size() > 1) {
-               System.out.println("writeBuffers(" + bytesPending + ")");
                writeBuffers(bytesPending);
                bytesPending = 0;
             }
 
             final long parkTime = autoFlushPeriod - (nanoTime() - startNs);
             if (parkTime > 0) {
-               System.err.println("Parking for " + parkTime + "ns");
                LockSupport.parkNanos(parkTime);
-            }
-            else {
-               System.err.println("Not parking: " + parkTime);
             }
          }
       }
@@ -467,7 +457,8 @@ public class InfluxDB implements AutoCloseable {
    }
 
    private static String readResponse(final ByteChannel channel) throws IOException {
-      try (final PoolableByteBuffer pbb = borrow512Buffer()) {
+      try (final BufferPoolManager bufferPool = BufferPoolManager.leaseBufferPoolManager();
+           final PoolableByteBuffer pbb = bufferPool.borrow512Buffer()) {
          final ByteBuffer buffer = pbb.getBuffer();
          do {
             final int read = channel.read(buffer);

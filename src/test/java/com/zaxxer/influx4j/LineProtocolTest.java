@@ -43,7 +43,7 @@ public class LineProtocolTest {
 
    @After
    public void shutdownFactory() {
-      pointFactory.shutdown();
+      pointFactory.close();
    }
 
    @Test(expected = IllegalStateException.class)
@@ -237,7 +237,7 @@ public class LineProtocolTest {
          Assert.assertEquals("testMeasurement2,chocolate=1,strawberry=2 boolean=f\n", bos.toString());
       }
       finally {
-         factory.shutdown();
+         factory.close();
       }
    }
 
