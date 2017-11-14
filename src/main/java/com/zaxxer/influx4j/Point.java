@@ -109,6 +109,11 @@ public class Point implements Poolable, AutoCloseable {
       return this;
    }
 
+   public Point write(InfluxDB influxDB) {
+      influxDB.write(this);
+      return this;
+   }
+
    @Override
    public void close() {
       release();

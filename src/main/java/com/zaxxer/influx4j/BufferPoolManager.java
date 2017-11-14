@@ -18,6 +18,7 @@ package com.zaxxer.influx4j;
 
 import java.nio.ByteBuffer;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.zaxxer.influx4j.util.DaemonThreadFactory;
 
@@ -36,16 +37,16 @@ class BufferPoolManager {
    private static final BlazePool<PoolableByteBuffer> pool4096;
 
    static {
-      final DaemonThreadFactory threadFactory = new DaemonThreadFactory();
+      final DaemonThreadFactory threadFactory = new DaemonThreadFactory("Buffer");
 
       final Config<PoolableByteBuffer> config128 = new Config<>()
          .setThreadFactory(threadFactory)
          .setAllocator(new ByteBuffer128Allocator())
-         .setSize(4096);
+         .setSize(8192);
       final Config<PoolableByteBuffer> config512 = new Config<>()
          .setThreadFactory(threadFactory)
          .setAllocator(new ByteBuffer512Allocator())
-         .setSize(1024);
+         .setSize(4096);
       final Config<PoolableByteBuffer> config4096 = new Config<>()
          .setThreadFactory(threadFactory)
          .setAllocator(new ByteBuffer4096Allocator())
@@ -94,8 +95,12 @@ class BufferPoolManager {
     * An Allocator that allocates 128-byte ByteBuffers.
     */
    private static class ByteBuffer128Allocator implements Allocator<PoolableByteBuffer> {
+      private AtomicInteger allocs = new AtomicInteger();
       @Override
       public PoolableByteBuffer allocate(final Slot slot) throws Exception {
+         if (allocs.incrementAndGet() % 1000 == 0) {
+            System.out.println("Allocated " + allocs.get() + "th 128-byte buffer");
+         }
          return new PoolableByteBuffer(slot, 128);
       }
 
@@ -141,9 +146,12 @@ class BufferPoolManager {
     static class PoolableByteBuffer implements Poolable, AutoCloseable {
       private final Slot slot;
       private final ByteBuffer buffer;
+      private final int size;
+      private static AtomicInteger claims = new AtomicInteger();
 
       PoolableByteBuffer(final Slot slot, final int size) {
          this.slot = slot;
+         this.size = size;
          this.buffer = ByteBuffer.allocate(size);
       }
 
@@ -153,16 +161,23 @@ class BufferPoolManager {
 
       void clear() {
          buffer.clear();
+         // System.out.println(this.getClass() + "-" + size + " claims " + claims.incrementAndGet());
       }
 
       @Override
       public void close() {
-         slot.release(this);
+         if (slot != null) {
+            // System.out.println(this.getClass() + "-" + size + " claims " + claims.decrementAndGet());
+            slot.release(this);
+         }
       }
 
       @Override
       public void release() {
-         slot.release(this);
+         if (slot != null) {
+            // System.out.println(this.getClass() + "-" + size + " claims " + claims.decrementAndGet());
+            slot.release(this);
+         }
       }
    }
 }

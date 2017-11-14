@@ -17,10 +17,12 @@
 package com.zaxxer.influx4j;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.StandardSocketOptions;
 import java.net.URI;
 import java.net.URLEncoder;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadFactory;
@@ -36,7 +38,9 @@ import com.zaxxer.influx4j.BufferPoolManager.PoolableByteBuffer;
 import org.jctools.queues.MpscArrayQueue;
 import tlschannel.ClientTlsChannel;
 
+import static com.zaxxer.influx4j.BufferPoolManager.borrow512Buffer;
 import static com.zaxxer.influx4j.util.FastValue2Buffer.writeLongToBuffer;
+import static java.lang.System.nanoTime;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 
@@ -113,7 +117,9 @@ public class InfluxDB implements AutoCloseable {
 
    @Override
    public void close() {
-      connection.close();
+      if (connection != null) {
+         connection.close();
+      }
    }
 
    public static Builder builder() {
@@ -129,7 +135,7 @@ public class InfluxDB implements AutoCloseable {
       private String retentionPolicy = "autogen";
       private String database;
       private String username;
-      private String password;
+      private String password = "";
       private String host = "localhost";
       private int port = 8086;
       private long autoFlushPeriod = MILLISECONDS.toNanos(500);
@@ -198,16 +204,20 @@ public class InfluxDB implements AutoCloseable {
       }
 
       public InfluxDB build() {
+         if (database == null) throw new IllegalStateException("Influx 'database' must be specified.");
+         if (username == null) throw new IllegalStateException("Influx 'username' must be specified.");
+
          try {
             EncapsulatedConnection connection;
             switch (protocol) {
                case HTTP:
                case HTTPS: {
                   final String url = createBaseURL();
-                  connection = CONNECTIONS.computeIfAbsent(url, this::createConnection);
-                  if (!validateConnection(connection)) {
+                  if (!validateConnection(createSocketChannel())) {
                      throw new RuntimeException("Access denied to database '" + database + "' for user '" + username + "'.");
                   }
+
+                  connection = CONNECTIONS.computeIfAbsent(url, this::createConnection);
                   break;
                }
                case UDP: {
@@ -229,14 +239,14 @@ public class InfluxDB implements AutoCloseable {
          }
       }
 
-      private EncapsulatedConnection createConnection(final String url) {
+      private ByteChannel createSocketChannel() {
          try {
             final SocketChannel sockChannel = SocketChannel.open();
             sockChannel.setOption(StandardSocketOptions.SO_REUSEADDR, true);
             sockChannel.setOption(StandardSocketOptions.SO_KEEPALIVE, true);
             sockChannel.setOption(StandardSocketOptions.SO_SNDBUF, SNDRCV_BUFFER_SIZE);
             sockChannel.setOption(StandardSocketOptions.SO_RCVBUF, SNDRCV_BUFFER_SIZE);
-            sockChannel.connect(InetSocketAddress.createUnresolved(host, port));
+            sockChannel.connect(new InetSocketAddress(host, port));
 
             ByteChannel channel;
             if (protocol == Protocol.HTTPS) {
@@ -249,44 +259,56 @@ public class InfluxDB implements AutoCloseable {
                channel = sockChannel;
             }
 
-            return new EncapsulatedConnection(url, channel, autoFlushPeriod, threadFactory);
+            return channel;
          }
          catch (final Exception e) {
             throw new RuntimeException(e);
          }
       }
 
-      boolean validateConnection(final EncapsulatedConnection connection) throws IOException {
-         final ByteBuffer buffer = ByteBuffer.allocate(512);
-         buffer.put(("GET " + protocol + "://" + host + ":" + port + "/query?" +
-                     "db=" + URLEncoder.encode(database, "utf8") +
-                     "&u=" + URLEncoder.encode(username, "utf8") +
-                     "&p=" + URLEncoder.encode(password, "utf8") +
-                     "&q=" + URLEncoder.encode("SHOW GRANTS FOR \"" + username + "\"", "utf8") +
-                     " HTTP/1.1\r\n"
-                    ).getBytes());
-         buffer.put("Connection: Keep-Alive\r\n\r\n".getBytes());
-         buffer.flip();
-         connection.channel.write(buffer);
-
-         buffer.clear();
-         final int read = connection.channel.read(buffer);
-         if (read > 0) {
-            buffer.flip();
-            final String response = new String(buffer.array(), 0, read);
-            if (response.startsWith("HTTP/1.1 2")) {
-               return true;
-            }
-            else if (response.startsWith("HTTP/1.1 401")) {
-               return false;
-            }
+      private EncapsulatedConnection createConnection(final String url) {
+         try {
+            return new EncapsulatedConnection(url, createSocketChannel(), autoFlushPeriod, threadFactory);
          }
-         throw new IOException("Unexpected end-of-stream during connection validation");
+         catch (final Exception e) {
+            throw new RuntimeException(e);
+         }
+      }
+
+      boolean validateConnection(final ByteChannel byteChannel) throws IOException {
+         try (final ByteChannel channel = byteChannel) {
+            final ByteBuffer buffer = ByteBuffer.allocate(512);
+            buffer.put(("GET " + protocol + "://" + host + ":" + port + "/query?" +
+                        "db=" + URLEncoder.encode(database, "utf8") +
+                        "&u=" + URLEncoder.encode(username, "utf8") +
+                        "&p=" + URLEncoder.encode(password, "utf8") +
+                        "&q=" + URLEncoder.encode("SHOW DATABASES", "utf8") +
+                        " HTTP/1.1\r\n"
+                     ).getBytes());
+            buffer.put("Connection: Keep-Alive\r\n".getBytes());
+            buffer.put("Host: ".getBytes()).put(InetAddress.getLocalHost().getHostName().getBytes()).put("\r\n\r\n".getBytes());
+            buffer.flip();
+            channel.write(buffer);
+
+            buffer.clear();
+            final int read = channel.read(buffer);
+            if (read > 0) {
+               buffer.flip();
+               final String response = new String(buffer.array(), 0, read);
+               if (response.startsWith("HTTP/1.1 2")) {
+                  return true;
+               }
+               else if (response.startsWith("HTTP/1.1 401")) {
+                  return false;
+               }
+            }
+            throw new IOException("Unexpected end-of-stream during connection validation");
+         }
       }
 
       private String createBaseURL() {
          try {
-            String query = "?db=" + URLEncoder.encode(database, "utf8")
+            String query = "db=" + URLEncoder.encode(database, "utf8")
                + "&consistency=" + consistency
                + "&precision=" + precision
                + "&rp=" + URLEncoder.encode(retentionPolicy, "utf8");
@@ -322,7 +344,7 @@ public class InfluxDB implements AutoCloseable {
       EncapsulatedConnection(final String url,
                              final ByteChannel channel,
                              final long autoFlushPeriod,
-                             final ThreadFactory threadFactory) {
+                             final ThreadFactory threadFactory) throws IOException {
          this.url = url;
          this.channel = channel;
          this.autoFlushPeriod = autoFlushPeriod;
@@ -340,9 +362,14 @@ public class InfluxDB implements AutoCloseable {
          if (!pointQueue.offer(point)) {
             throw new RuntimeException("Point queue overflow.  Exceeded capacity of " + pointQueue.capacity() + ".");
          }
+         else {
+            System.err.println("Enqueued point " + point);
+         }
       }
 
       void close() {
+         if (shutdown) return;
+
          try {
             shutdown = true;
             channel.close();
@@ -350,12 +377,17 @@ public class InfluxDB implements AutoCloseable {
          catch (final IOException e) {
             return;
          }
+         finally {
+            CONNECTIONS.remove(url);
+         }
       }
 
       @Override
       public void run() {
          int bytesPending = 0;
          while (!shutdown) {
+            final long startNs = nanoTime();
+            System.err.println("Starting loop.");
             do {
                if (pendingQueue.isEmpty()) {
                   pendingQueue.add(httpHeaders);
@@ -363,54 +395,91 @@ public class InfluxDB implements AutoCloseable {
 
                try (final Point point = pointQueue.poll()) {
                   if (point == null) break;
+                  System.out.println("Got point " + point);
                   bytesPending += point.enqueueBuffers(pendingQueue);
                }
-            } while (!shutdown && bytesPending < SNDRCV_BUFFER_SIZE - (64 * 1024));
+            } while (bytesPending < SNDRCV_BUFFER_SIZE - (64 * 1024) && !shutdown);
 
             if (pendingQueue.size() > 1) {
-               try {
-                  flushBuffers(bytesPending);
-                  bytesPending = 0;
-               }
-               catch (final IOException ioe) {
-                  // TODO: What? Log? Pretty spammy...
-                  ioe.printStackTrace();
-               }
+               System.out.println("writeBuffers(" + bytesPending + ")");
+               writeBuffers(bytesPending);
+               bytesPending = 0;
             }
 
-            if (pointQueue.isEmpty() && !shutdown) {
-               LockSupport.parkNanos(autoFlushPeriod);
+            final long parkTime = autoFlushPeriod - (nanoTime() - startNs);
+            if (parkTime > 0) {
+               System.err.println("Parking for " + parkTime + "ns");
+               LockSupport.parkNanos(parkTime);
+            }
+            else {
+               System.err.println("Not parking: " + parkTime);
             }
          }
       }
 
-      private int setupHttpHeaderBuffer() {
+      private int setupHttpHeaderBuffer() throws UnknownHostException {
          final ByteBuffer buffer = httpHeaders.getBuffer();
-         buffer.put("POST  ".getBytes());
-         buffer.put(url.getBytes());
-         buffer.put((byte) '\r');
-         buffer.put((byte) '\n');
+         buffer.put(("POST " + url + " HTTP/1.1\r\n").getBytes());
+         buffer.put(("Host: " + InetAddress.getLocalHost().getHostName() + "\r\n").getBytes());
+         buffer.put("Content-Type: application/x-www-form-urlencoded\r\n".getBytes());
          buffer.put("Content-Length: ".getBytes());
          return buffer.position();
       }
 
-      private void flushBuffers(final int bytesPending) throws IOException {
+      private void writeBuffers(final int bytesPending) {
          final ByteBuffer contentLengthBuffer = httpHeaders.getBuffer();
          writeLongToBuffer(bytesPending, contentLengthBuffer);
          contentLengthBuffer.put((byte) '\r').put((byte) '\n').put((byte) '\r').put((byte) '\n').flip();
 
+         // Cache these in local variables to avoid member dereferencing
          final GatheringByteChannel byteChannel = (GatheringByteChannel) channel;
          final ArrayList<PoolableByteBuffer> buffers = pendingQueue;
 
-         final int bufferCount = buffers.size();
-         for (int i = 0; i < bufferCount; i++) {
-            try (final PoolableByteBuffer buffer = buffers.get(i)) {
-               byteChannel.write(buffer.getBuffer());
+         try {
+            final int bufferCount = buffers.size();
+            for (int i = 0; i < bufferCount; i++) {
+               // Using try-with-resources releases the PoolableByteBuffer after writing
+               try (final PoolableByteBuffer buffer = buffers.get(i)) {
+                  byteChannel.write(buffer.getBuffer());
+               }
+            }
+
+            final String response = readResponse(channel);
+            final int status = Integer.valueOf(response.substring(9, 12));
+            if (status == 401) {
+               // re-authenticate?
+            }
+            else if (status > 399) {
+               System.err.println(response);
+               // unexpected response
             }
          }
+         catch (final IOException io) {
+            // TODO: What? Log? Pretty spammy...
+            io.printStackTrace();
+         }
 
-         buffers.clear();
+         // Clear the pending queue
+         pendingQueue.clear();
+         // Reset the http header buffer to the point where the next Content-Length value will be written
          contentLengthBuffer.clear().position(contentLengthOffset);
+      }
+   }
+
+   private static String readResponse(final ByteChannel channel) throws IOException {
+      try (final PoolableByteBuffer pbb = borrow512Buffer()) {
+         final ByteBuffer buffer = pbb.getBuffer();
+         do {
+            final int read = channel.read(buffer);
+            if (read < 0) {
+               throw new IOException("Unexpected end-of-stream");
+            }
+         } while (buffer.position() < 12);
+
+         // HTTP/1.1 xxx
+         buffer.flip();
+         byte[] bytes = buffer.array();
+         return new String(bytes, 0, buffer.remaining());
       }
    }
 }

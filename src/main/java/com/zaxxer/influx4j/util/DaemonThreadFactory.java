@@ -19,10 +19,16 @@ package com.zaxxer.influx4j.util;
 import java.util.concurrent.ThreadFactory;
 
 public class DaemonThreadFactory implements ThreadFactory {
+   private final String discriminator;
+
+   public DaemonThreadFactory(final String discriminator) {
+      this.discriminator = discriminator;
+   }
+
    @Override
    public Thread newThread(final Runnable r) {
       final Thread t = new Thread(r);
-      t.setName("influx4j stormpot thread");
+      t.setName("influx4j stormpot " + discriminator + " thread");
       t.setDaemon(true);
       return t;
    }

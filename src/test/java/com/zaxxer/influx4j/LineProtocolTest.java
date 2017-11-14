@@ -37,7 +37,7 @@ public class LineProtocolTest {
    @Before
    public void createFactory() {
       pointFactory = PointFactory.builder()
-            .setThreadFactory(new DaemonThreadFactory())
+            .setThreadFactory(new DaemonThreadFactory("Point"))
             .build();
    }
 

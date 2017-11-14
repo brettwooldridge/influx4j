@@ -3,20 +3,31 @@
 echo "Starting InfluxDB docker for test..."
 
 docker_id=$(docker run \
+            --env INFLUXDB_HTTP_AUTH_ENABLED=true \
+            --env INFLUXDB_ADMIN_ENABLED=true \
+            --env INFLUXDB_DB=influx4j \
+            --env INFLUXDB_USER=influx4j \
+            --env INFLUXDB_USER_PASSWORD=influx4j \
+            --env INFLUXDB_ADMIN_USER=admin \
+            --env INFLUXDB_ADMIN_PASSWORD=password \
             --env INFLUXDB_UDP_ENABLED=true \
             --publish 9086:8086 \
             --publish 9089:8089/udp \
             --tmpfs /var/lib/influxdb:rw,noexec,nosuid,size=65536k \
-            --detach influxdb:1.3-alpine)
-sleep 2
+            --detach influxdb:1.3 influxd)
 docker ps
 
-echo "------------------------------------------------------------------------------"
-echo "Creating 'influx4j' database..."
-curl -v 'http://localhost:9086/query' --data-urlencode 'q=CREATE DATABASE "influx4j"'
+#echo "------------------------------------------------------------------------------"
+#echo "Creating 'influx4j' database..."
+#curl -v 'http://localhost:9086/query' --data-urlencode 'q=CREATE DATABASE "influx4j"'
 
 echo "------------------------------------------------------------------------------"
 
-mvn test -B -V
+debug="-DforkCount=1"
+if [[ "$1" = "debug" ]]; then
+   debug="-Dmaven.surefire.debug -DforkCount=0"
+fi
+
+mvn $debug test -B -V
 
 tmp=$(docker rm -f $docker_id)
