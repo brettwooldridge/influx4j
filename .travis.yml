@@ -9,5 +9,11 @@ jdk:
 install:
   - mvn package -DskipTests=true -Dmaven.javadoc.skip=true -V -B
 
+before_script:
+  - docker run --env INFLUXDB_UDP_ENABLED=true --publish 9086:8086 --publish 9089:8089/udp --tmpfs /var/lib/influxdb:rw,noexec,nosuid,size=65536k --detach influxdb:1.3-alpine
+  - sleep 2
+  - docker ps
+  - curl -v -XPOST 'http://localhost:9086/query' --data-urlencode 'q=CREATE DATABASE "influx4j"'
+
 script:
-  - ./unittest.sh
+  - mvn test -B -V
