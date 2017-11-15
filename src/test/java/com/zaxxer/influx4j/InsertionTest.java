@@ -21,9 +21,11 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
 import com.zaxxer.influx4j.util.DaemonThreadFactory;
+
 
 public class InsertionTest {
    private PointFactory pointFactory;
@@ -43,38 +45,43 @@ public class InsertionTest {
          .setThreadFactory(new DaemonThreadFactory("Flusher"))
          .build();
 
-      TimeUnit.SECONDS.sleep(5);
+      TimeUnit.SECONDS.sleep(1);
    }
 
    @After
-   public void shutdownFactory() {
+   public void shutdownFactory() throws Exception {
+      System.out.println(System.currentTimeMillis() + " shutting down...");
       pointFactory.close();
+
+      TimeUnit.SECONDS.sleep(1);
+
       influxDB.close();
+
+      System.out.println(System.currentTimeMillis() + " shutdown.");
    }
 
    @Test
    public void testSingleInsert() throws Exception {
 
-      System.err.println(System.currentTimeMillis() + " testSingleInsert() started.");
+      System.out.println(System.currentTimeMillis() + " starting testSingleInsert()...");
+
       final Point point = pointFactory.createPoint("testMeasurement")
          .tag("tag", "apple")
          .field("boolean", true);
-         // .write(influxDB);
 
       influxDB.write(point);
 
-      TimeUnit.MILLISECONDS.sleep(500);
+      TimeUnit.SECONDS.sleep(1);
 
-      System.err.println(System.currentTimeMillis() + " testSingleInsert() completed.");
+      System.out.println(System.currentTimeMillis() + " completed testSingleInsert().");
 
       // TODO query and verify
    }
 
-   @Test
+   // @Test
    public void testMultipleInserts() throws Exception {
-      System.err.println(System.currentTimeMillis() + " testMultipleInserts() started.");
 
-      for (int i = 0; i < 2000; i++) {
+      for (int i = 0; i < 1000; i++) {
          final Point point = pointFactory.createPoint("testMeasurement")
             .tag("tag", "banana")
             .field("count", i);
@@ -82,9 +89,7 @@ public class InsertionTest {
          influxDB.write(point);
       }
 
-      TimeUnit.MILLISECONDS.sleep(500);
-
-      System.err.println(System.currentTimeMillis() + " testMultipleInserts() completed.");
+      TimeUnit.SECONDS.sleep(1);
 
       // TODO query and verify
    }

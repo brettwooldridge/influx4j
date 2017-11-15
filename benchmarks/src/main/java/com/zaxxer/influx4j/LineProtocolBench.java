@@ -14,6 +14,7 @@ import org.openjdk.jmh.annotations.Warmup;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -63,12 +64,10 @@ public class LineProtocolBench {
          })
          .build();
 
-      private final ByteArrayOutputStream os = new ByteArrayOutputStream(256);
+      private final ByteBuffer buffer = ByteBuffer.allocate(256);
 
       @Override
       public Object createPointLineProtocol() throws IOException {
-         os.reset();
-
          final Point point = pointFactory.createPoint("testMeasurement")
                  .tag("zebra", "4")
                  .tag("apple", "1")
@@ -77,21 +76,21 @@ public class LineProtocolBench {
                  .field("long", 12345)
                  .field("boolean", true)
                  .field("double", 12345.6789d)
-                 .field("string", "This is a string")
-                 .writeToStream(os);
+                 .field("string", "This is a string");
+
+         point.write(buffer);
+         buffer.clear();
          point.release();
 
-        return os;
+        return buffer;
       }
    }
 
    private static class InfluxDbPointAdapter implements PointAdapter {
-      private final ByteArrayOutputStream os = new ByteArrayOutputStream(256);
+      private final ByteBuffer buffer = ByteBuffer.allocate(256);
 
       @Override
       public Object createPointLineProtocol() throws IOException {
-         os.reset();
-
          org.influxdb.dto.Point point = org.influxdb.dto.Point.measurement("testMeasurement")
                  .tag("zebra", "4")
                  .tag("apple", "1")
@@ -103,8 +102,9 @@ public class LineProtocolBench {
                  .addField("string", "This is a string")
                  .build();
 
-        os.write(point.lineProtocol().getBytes());
-        return os;
+        buffer.put(point.lineProtocol().getBytes());
+        buffer.clear();
+        return buffer;
       }
    }
 }

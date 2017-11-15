@@ -26,6 +26,8 @@ echo "--------------------------------------------------------------------------
 debug="-DforkCount=1"
 if [[ "$1" = "debug" ]]; then
    debug="-Dmaven.surefire.debug -DforkCount=0"
+elif [[ "$1" = "profile" ]]; then
+   debug="-agentpath:/Applications/JProfiler.app/Contents/Resources/app/bin/macos/libjprofilerti.jnilib=port=8849 -DforkCount=0"
 fi
 
 mvn $debug test -B -V
