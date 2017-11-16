@@ -172,13 +172,14 @@ public class Point {
    }
 
    void release() {
-      reset();
-      parentFactory.returnPoint(this);
-   }
+      // Reset important point state (and bits necessary to aid garbage collection)
+      final int tagCount = tagIndex;
+      for (int i = 0; i < tagCount; i++) {
+         tags[i].reset();
+      }
 
-   private void reset() {
-      final int len = stringFieldIndex;
-      for (int i = 0; i < len; i++) {
+      final int strFieldCount = stringFieldIndex;
+      for (int i = 0; i < strFieldCount; i++) {
          stringFields[i].reset();
       }
 
@@ -190,6 +191,8 @@ public class Point {
       booleanFieldIndex = 0;
       timestamp = 0;
       firstFieldWritten = false;
+
+      parentFactory.returnPoint(this);
    }
 
 
