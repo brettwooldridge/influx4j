@@ -16,8 +16,6 @@
 
 package com.zaxxer.influx4j;
 
-import java.util.concurrent.TimeUnit;
-
 import com.zaxxer.influx4j.util.FAAArrayQueue;
 
  /**
@@ -25,8 +23,6 @@ import com.zaxxer.influx4j.util.FAAArrayQueue;
  */
 @SuppressWarnings("WeakerAccess")
 public class PointFactory {
-   private static final ThreadLocal<Point> THREAD_POINT = new ThreadLocal<>();
-
    private final FAAArrayQueue<Point> pointPool;
 
    public static Builder builder() {
@@ -34,32 +30,21 @@ public class PointFactory {
    }
 
    public Point createPoint(final String measurement) {
-      Point point = THREAD_POINT.get();
-      if (point != null) {
-         THREAD_POINT.remove();
-      }
-      else {
-         point = pointPool.dequeue();
-         if (point == null) {
-            point = new Point(this);
-         }
+      Point point = pointPool.dequeue();
+      if (point == null) {
+         point = new Point(this);
       }
 
       point.measurement(measurement);
       return point;
    }
 
-   public void close() {
-      while (pointPool.dequeue() != null);
+   void returnPoint(final Point point) {
+      pointPool.enqueue(point);
    }
 
-   void returnPoint(final Point point) {
-      if (THREAD_POINT.get() == null) {
-         THREAD_POINT.set(point);
-      }
-      else {
-         pointPool.enqueue(point);
-      }
+   public void close() {
+      while (pointPool.dequeue() != null);
    }
 
    private PointFactory(final int initialPoolSize) {

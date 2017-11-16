@@ -63,10 +63,10 @@ public class LineProtocolBench {
       @Override
       public Object createPointLineProtocol() throws IOException {
          final Point point = pointFactory.createPoint("testMeasurement")
-                 .tag("zebra", "4")
-                 .tag("apple", "1")
-                 .tag("table", "3")
-                 .tag("mouse", "2")
+                 .tag("zebra", "cafe")
+                 .tag("apple", "rare7")
+                 .tag("table", "tiger")
+                 .tag("mouse", "beer")
                  .field("long", 12345)
                  .field("boolean", true)
                  .field("double", 12345.6789d)
@@ -86,17 +86,18 @@ public class LineProtocolBench {
 
       @Override
       public Object createPointLineProtocol() throws IOException {
-         org.influxdb.dto.Point point = org.influxdb.dto.Point.measurement("testMeasurement")
-                 .tag("zebra", "4")
-                 .tag("apple", "1")
-                 .tag("table", "3")
-                 .tag("mouse", "2")
-                 .addField("long", 12345)
-                 .addField("boolean", true)
-                 .addField("double", 12345.6789d)
-                 .addField("string", "This is a string")
-                 .time(System.currentTimeMillis(), TimeUnit.MILLISECONDS)
-                 .build();
+         org.influxdb.dto.Point point = org.influxdb.dto.Point
+               .measurement("testMeasurement")
+               .tag("zebra", "cafe")
+               .tag("apple", "rare7")
+               .tag("table", "tiger")
+               .tag("mouse", "beer")
+               .addField("long", 12345)
+               .addField("boolean", true)
+               .addField("double", 12345.6789d)
+               .addField("string", "This is a string")
+               .time(System.currentTimeMillis(), TimeUnit.MILLISECONDS)
+               .build();
 
         buffer.put(point.lineProtocol().getBytes());
         buffer.clear();

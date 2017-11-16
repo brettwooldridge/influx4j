@@ -203,23 +203,23 @@ public class Point {
 
    void serializeTag(final ByteBuffer buffer, final StringPair pair) {
       buffer.put((byte) ',');
-      escapeTagKeyOrValue(buffer, pair.name(), containsUnicode(pair.name()));
+      escapeTagKeyOrValue(buffer, pair.name());
       buffer.put((byte) '=');
-      escapeTagKeyOrValue(buffer, pair.value(), containsUnicode(pair.value()));
+      escapeTagKeyOrValue(buffer, pair.value());
    }
 
    void serializeStringField(final ByteBuffer buffer, final StringPair pair) {
       addFieldSeparator(buffer);
-      escapeFieldKey(buffer, pair.name(), containsUnicode(pair.name));
+      escapeFieldKey(buffer, pair.name());
       buffer.put((byte) '=');
       buffer.put((byte) '"');
-      escapeFieldValue(buffer, pair.value(), containsUnicode(pair.value()));
+      escapeFieldValue(buffer, pair.value());
       buffer.put((byte) '"');
    }
 
    void serializeLongField(final ByteBuffer buffer, final LongPair pair) {
       addFieldSeparator(buffer);
-      escapeFieldKey(buffer, pair.name(), containsUnicode(pair.name()));
+      escapeFieldKey(buffer, pair.name());
       buffer.put((byte) '=');
       writeLongToBuffer(pair.value(), buffer);
       buffer.put((byte) 'i');
@@ -227,14 +227,14 @@ public class Point {
 
    void serializeDoubleField(final ByteBuffer buffer, final DoublePair pair) {
       addFieldSeparator(buffer);
-      escapeFieldKey(buffer, pair.name(), containsUnicode(pair.name()));
+      escapeFieldKey(buffer, pair.name());
       buffer.put((byte) '=');
       writeDoubleToBuffer(pair.value(), buffer);
    }
 
    void serializeBooleanField(final ByteBuffer buffer, final BooleanPair pair) {
       addFieldSeparator(buffer);
-      escapeFieldKey(buffer, pair.name(), containsUnicode(pair.name()));
+      escapeFieldKey(buffer, pair.name());
       buffer.put((byte) '=');
       buffer.put(pair.value() ? (byte) 't' : (byte) 'f');
    }
@@ -248,16 +248,16 @@ public class Point {
     * Escape handling
     */
 
-   private static void escapeTagKeyOrValue(final ByteBuffer buffer, final String string, final boolean isUnicode) {
-      escapeCommaEqualSpace(string, buffer, isUnicode);
+   private static void escapeTagKeyOrValue(final ByteBuffer buffer, final String string) {
+      escapeCommaEqualSpace(string, buffer);
    }
 
-   private static void escapeFieldKey(final ByteBuffer buffer, final String key, final boolean isUnicode) {
-      escapeCommaEqualSpace(key, buffer, isUnicode);
+   private static void escapeFieldKey(final ByteBuffer buffer, final String key) {
+      escapeCommaEqualSpace(key, buffer);
    }
 
-   private static void escapeFieldValue(final ByteBuffer buffer, final String value, final boolean isUnicode) {
-      escapeDoubleQuote(value, buffer, isUnicode);
+   private static void escapeFieldValue(final ByteBuffer buffer, final String value) {
+      escapeDoubleQuote(value, buffer);
    }
 
    private static void escapeCommaSpace(final ByteBuffer buffer, final String string) {
@@ -282,8 +282,8 @@ public class Point {
       }
    }
 
-   private static void escapeCommaEqualSpace(final String string, final ByteBuffer buffer, final boolean isUnicode) {
-      if (isUnicode || containsCommaEqualSpace(string)) {
+   private static void escapeCommaEqualSpace(final String string, final ByteBuffer buffer) {
+      if (containsCommaEqualSpace(string)) {
          final byte[] bytes = string.getBytes();
          for (int i = 0; i < bytes.length; i++) {
             switch (bytes[i]) {
@@ -305,8 +305,8 @@ public class Point {
       }
    }
 
-   private static void escapeDoubleQuote(final String string, final ByteBuffer buffer, final boolean isUnicode) {
-      if (isUnicode || string.indexOf('"') != -1) {
+   private static void escapeDoubleQuote(final String string, final ByteBuffer buffer) {
+      if (string.indexOf('"') != -1) {
          final byte[] bytes = string.getBytes();
          for (int i = 0; i < bytes.length; i++) {
             if (bytes[i] == '"') {
@@ -324,23 +324,16 @@ public class Point {
 
    private static boolean containsCommaSpace(final String string) {
       for (int i = 0; i < string.length(); i++) {
-         switch (string.charAt(i)) {
-            case ',':
-            case ' ':
-               return true;
-         }
+         final char c = string.charAt(i);
+         if (c == ',' || c == ' ' || c > '~') return true;
       }
       return false;
    }
 
    private static boolean containsCommaEqualSpace(final String string) {
       for (int i = 0; i < string.length(); i++) {
-         switch (string.charAt(i)) {
-            case ',':
-            case '=':
-            case ' ':
-               return true;
-         }
+         final char c = string.charAt(i);
+         if (c < '>' || c > '~') return true;
       }
       return false;
    }
@@ -376,7 +369,7 @@ public class Point {
     * Pair classes
     */
 
-   private static class StringPair {
+   private static final class StringPair {
       private String name;
       private String value;
 
@@ -399,7 +392,7 @@ public class Point {
       }
    }
 
-   private static class LongPair {
+   private static final class LongPair {
       private String name;
       private long value;
 
@@ -417,7 +410,7 @@ public class Point {
       }
    }
 
-   private static class DoublePair {
+   private static final class DoublePair {
       private String name;
       private double value;
 
@@ -435,7 +428,7 @@ public class Point {
       }
    }
 
-   private static class BooleanPair {
+   private static final class BooleanPair {
       private String name;
       private boolean value;
 

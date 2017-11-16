@@ -17,7 +17,7 @@ JAVA_OPTIONS="$JAVA_OPTIONS -XX:+ExplicitGCInvokesConcurrent"
 
 # Optimizations
 JAVA_OPTIONS="$JAVA_OPTIONS -XX:+OptimizeStringConcat"
-JAVA_OPTIONS="$JAVA_OPTIONS -XX:+UseStringDeduplication"
+# JAVA_OPTIONS="$JAVA_OPTIONS -XX:+UseStringDeduplication"
 JAVA_OPTIONS="$JAVA_OPTIONS -XX:+UseFastAccessorMethods"
 JAVA_OPTIONS="$JAVA_OPTIONS -XX:+UseCompressedClassPointers"
 JAVA_OPTIONS="$JAVA_OPTIONS -XX:+UseCompressedOops"
