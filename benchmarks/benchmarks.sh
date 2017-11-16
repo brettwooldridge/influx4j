@@ -28,7 +28,7 @@ if [[ "clean" == "$1" ]]; then
    shift
 fi
 
-JMH_THREADS="-t 4"
+JMH_THREADS="-t 8"
 if [[ "$2" == "-t" ]]; then
    JMH_THREADS="-t $3"
    set -- "$1" "${@:4}"

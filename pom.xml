@@ -48,12 +48,6 @@
 
    <dependencies>
       <dependency>
-         <groupId>com.github.chrisvest</groupId>
-         <artifactId>stormpot</artifactId>
-         <version>2.4.1</version>
-         <scope>compile</scope>
-      </dependency>
-      <dependency>
          <groupId>com.github.marianobarrios</groupId>
          <artifactId>tls-channel</artifactId>
          <version>0.1.0</version>

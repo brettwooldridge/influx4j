@@ -56,13 +56,7 @@ public class LineProtocolBench {
    }
 
    private static class Influx4jPointAdapter implements PointAdapter {
-      private static final PointFactory pointFactory = PointFactory.builder()
-         .setThreadFactory(r -> {
-            Thread t = new Thread(r);
-            t.setDaemon(true);
-            return t;
-         })
-         .build();
+      private static final PointFactory pointFactory = PointFactory.builder().build();
 
       private final ByteBuffer buffer = ByteBuffer.allocate(256);
 
@@ -76,7 +70,8 @@ public class LineProtocolBench {
                  .field("long", 12345)
                  .field("boolean", true)
                  .field("double", 12345.6789d)
-                 .field("string", "This is a string");
+                 .field("string", "This is a string")
+                 .timestamp();
 
          point.write(buffer);
          buffer.clear();
@@ -100,6 +95,7 @@ public class LineProtocolBench {
                  .addField("boolean", true)
                  .addField("double", 12345.6789d)
                  .addField("string", "This is a string")
+                 .time(System.currentTimeMillis(), TimeUnit.MILLISECONDS)
                  .build();
 
         buffer.put(point.lineProtocol().getBytes());

@@ -16,46 +16,59 @@
 
 package com.zaxxer.influx4j;
 
-import stormpot.Allocator;
-import stormpot.BlazePool;
-import stormpot.Config;
-import stormpot.Slot;
-import stormpot.Timeout;
-
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+
+import com.zaxxer.influx4j.util.FAAArrayQueue;
 
  /**
  * @author brett.wooldridge at gmail.com
  */
 @SuppressWarnings("WeakerAccess")
 public class PointFactory {
-   private static final Timeout TIMEOUT = new Timeout(Long.MAX_VALUE, TimeUnit.DAYS);
+   private static final ThreadLocal<Point> THREAD_POINT = new ThreadLocal<>();
 
-   private final BlazePool<Point> pointPool;
+   private final FAAArrayQueue<Point> pointPool;
 
    public static Builder builder() {
       return new Builder();
    }
 
    public Point createPoint(final String measurement) {
-      try {
-         final Point point = pointPool.claim(TIMEOUT);
-         point.measurement(measurement);
-         return point;
+      Point point = THREAD_POINT.get();
+      if (point != null) {
+         THREAD_POINT.remove();
       }
-      catch (InterruptedException e) {
-         throw new RuntimeException(e);
+      else {
+         point = pointPool.dequeue();
+         if (point == null) {
+            point = new Point(this);
+         }
       }
+
+      point.measurement(measurement);
+      return point;
    }
 
    public void close() {
-      pointPool.shutdown();
+      while (pointPool.dequeue() != null);
    }
 
-   private PointFactory(final Config<Point> config) {
-      this.pointPool = new BlazePool<>(config);
-      this.pointPool.setTargetSize(512);
+   void returnPoint(final Point point) {
+      if (THREAD_POINT.get() == null) {
+         THREAD_POINT.set(point);
+      }
+      else {
+         pointPool.enqueue(point);
+      }
+   }
+
+   private PointFactory(final int initialPoolSize) {
+      this.pointPool = new FAAArrayQueue<>();
+
+      // Pre-populate the pool
+      for (int i = 0; i < initialPoolSize; i++) {
+         pointPool.enqueue(new Point(this));
+      }
    }
 
    /**
@@ -63,42 +76,18 @@ public class PointFactory {
     * create an instance of the {@link Builder}.
     */
    public static class Builder {
-      private final Config<Point> config;
+      private int size = 128;
 
       private Builder() {
-         config = new Config<Point>().setSize(512);
       }
 
       public Builder setSize(final int size) {
-         config.setSize(size);
-         return this;
-      }
-
-      public Builder setThreadFactory(final ThreadFactory threadFactory) {
-         config.setThreadFactory(threadFactory);
+         this.size = size;
          return this;
       }
 
       public PointFactory build() {
-          config.setAllocator(new PointAllocator());
-          final PointFactory pointFactory = new PointFactory(config);
-          return pointFactory;
-      }
-   }
-
-
-   /**
-    * {@code Allocator} used by StormPot for managing poolable object lifetimes.
-    */
-   private static class PointAllocator implements Allocator<Point> {
-      @Override
-      public Point allocate(final Slot slot) throws Exception {
-         return new Point(slot);
-      }
-
-      @Override
-      public void deallocate(final Point poolable) throws Exception {
-         // nothing
+          return new PointFactory(size);
       }
    }
 }

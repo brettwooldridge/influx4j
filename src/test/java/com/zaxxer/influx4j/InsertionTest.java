@@ -21,7 +21,6 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
 import com.zaxxer.influx4j.util.DaemonThreadFactory;
@@ -33,9 +32,7 @@ public class InsertionTest {
 
    @Before
    public void createFactory() throws Exception {
-      pointFactory = PointFactory.builder()
-            .setThreadFactory(new DaemonThreadFactory("Point"))
-            .build();
+      pointFactory = PointFactory.builder().build();
 
       influxDB = InfluxDB.builder()
          .setConnection("127.0.0.1", 9086, InfluxDB.Protocol.HTTP)
@@ -44,47 +41,35 @@ public class InsertionTest {
          .setDatabase("influx4j")
          .setThreadFactory(new DaemonThreadFactory("Flusher"))
          .build();
-
-      TimeUnit.SECONDS.sleep(1);
    }
 
    @After
    public void shutdownFactory() throws Exception {
-      System.out.println(System.currentTimeMillis() + " shutting down...");
-      pointFactory.close();
-
-      TimeUnit.SECONDS.sleep(1);
-
       influxDB.close();
-
-      System.out.println(System.currentTimeMillis() + " shutdown.");
    }
 
    @Test
    public void testSingleInsert() throws Exception {
-
-      System.out.println(System.currentTimeMillis() + " starting testSingleInsert()...");
-
-      final Point point = pointFactory.createPoint("testMeasurement")
+      final Point point = pointFactory.createPoint("testSingleInsert")
          .tag("tag", "apple")
-         .field("boolean", true);
+         .field("boolean", true)
+         .timestamp(System.currentTimeMillis(), TimeUnit.MILLISECONDS);
 
       influxDB.write(point);
 
       TimeUnit.SECONDS.sleep(1);
 
-      System.out.println(System.currentTimeMillis() + " completed testSingleInsert().");
-
       // TODO query and verify
    }
 
-   // @Test
+   @Test
    public void testMultipleInserts() throws Exception {
-
+      final long timeNs = TimeUnit.MILLISECONDS.toNanos(System.currentTimeMillis());
       for (int i = 0; i < 1000; i++) {
-         final Point point = pointFactory.createPoint("testMeasurement")
+         final Point point = pointFactory.createPoint("testMultipleInserts")
             .tag("tag", "banana")
-            .field("count", i);
+            .field("count", i)
+            .timestamp(timeNs + i, TimeUnit.NANOSECONDS);
 
          influxDB.write(point);
       }

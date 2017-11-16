@@ -20,16 +20,7 @@ import java.nio.ByteBuffer;
 import java.util.concurrent.TimeUnit;
 
 import com.zaxxer.influx4j.util.PrimitiveArraySort;
-import stormpot.Poolable;
-import stormpot.Slot;
 
-import static com.zaxxer.influx4j.Point.PointSerializer.serializeTag;
-import static com.zaxxer.influx4j.Point.PointSerializer.serializeStringField;
-import static com.zaxxer.influx4j.Point.PointSerializer.serializeLongField;
-import static com.zaxxer.influx4j.Point.PointSerializer.serializeDoubleField;
-import static com.zaxxer.influx4j.Point.PointSerializer.serializeBooleanField;
-import static com.zaxxer.influx4j.Point.PointSerializer.serializeMeasurement;
-import static com.zaxxer.influx4j.Point.PointSerializer.serializeTimestamp;
 import static com.zaxxer.influx4j.util.FastValue2Buffer.writeDoubleToBuffer;
 import static com.zaxxer.influx4j.util.FastValue2Buffer.writeLongToBuffer;
 import static com.zaxxer.influx4j.util.Utf8.containsUnicode;
@@ -38,7 +29,7 @@ import static com.zaxxer.influx4j.util.Utf8.containsUnicode;
  * @author brett.wooldridge at gmail.com
  */
 @SuppressWarnings("ALL")
-public class Point implements Poolable, AutoCloseable {
+public class Point {
    private final static int MAX_TAG_COUNT = Integer.getInteger("com.zaxxer.influx4j.maxTagCount", 64);
    private final static int MAX_FIELD_COUNT = Integer.getInteger("com.zaxxer.influx4j.maxTagCount", 64);
 
@@ -53,10 +44,11 @@ public class Point implements Poolable, AutoCloseable {
    private final BooleanPair[] boolFields;
 
    private String measurement;
+   private long timestamp;
+   private boolean firstFieldWritten;
 
-   private final Slot slot;
+   private final PointFactory parentFactory;
 
-   private Long timestamp;
    private int tagIndex;
    private int tagMark;
 
@@ -65,8 +57,8 @@ public class Point implements Poolable, AutoCloseable {
    private int stringFieldIndex;
    private int booleanFieldIndex;
 
-   Point(final Slot slot) {
-      this.slot = slot;
+   Point(final PointFactory parentFactory) {
+      this.parentFactory = parentFactory;
       this.tags = new StringPair[MAX_TAG_COUNT];
       this.tagSort = new int[MAX_TAG_COUNT];
       this.tagKeyComparator = new ParallelTagArrayComparator(tags);
@@ -90,25 +82,26 @@ public class Point implements Poolable, AutoCloseable {
 
    public Point field(final String field, final String value) {
       stringFields[stringFieldIndex++].setPair(field, value);
-      // buffer.serializeStringField(field, value);
       return this;
    }
 
    public Point field(final String field, final long value) {
       longFields[longFieldIndex++].setPair(field, value);
-      // buffer.serializeLongField(field, value);
       return this;
    }
 
    public Point field(final String field, final double value) {
       doubleFields[doubleFieldIndex++].setPair(field, value);
-       // buffer.serializeDoubleField(field, value);
       return this;
    }
 
    public Point field(final String field, final boolean value) {
       boolFields[booleanFieldIndex++].setPair(field, value);
-      // buffer.serializeBooleanField(field, value);
+      return this;
+   }
+
+   public Point timestamp() {
+      this.timestamp = TimeUnit.MILLISECONDS.toNanos(System.currentTimeMillis());
       return this;
    }
 
@@ -119,25 +112,12 @@ public class Point implements Poolable, AutoCloseable {
 
    public Point mark() {
       tagMark = tagIndex;
-      // buffer.mark();
       return this;
    }
 
    public Point rewind() {
       tagIndex = tagMark;
-      // buffer.rewind();
       return this;
-   }
-
-   @Override
-   public void close() {
-      release();
-   }
-
-   @Override
-   public void release() {
-      reset();
-      slot.release(this);
    }
 
    public Point measurement(final String measurement) {
@@ -151,6 +131,9 @@ public class Point implements Poolable, AutoCloseable {
       if (fieldCount == 0) {
          throw new IllegalStateException("Point must have at least one field");
       }
+      if (timestamp == 0) {
+         throw new IllegalStateException("Point requires a timestamp, default timestamps are not supported");
+      }
 
       serializeMeasurement(buffer, measurement);
 
@@ -163,47 +146,40 @@ public class Point implements Poolable, AutoCloseable {
          PrimitiveArraySort.sort(tagSort, tagCount, tagKeyComparator);
          for (int i = 0; i < tagCount; i++) {
             final int ndx = tagSort[i];
-            final StringPair pair = tags[ndx];
-            serializeTag(buffer, pair.name(), pair.value());
+            serializeTag(buffer, tags[ndx]);
          }
       }
 
-      boolean notFirstField = false;
       for (int i = 0; i < stringFieldIndex; i++) {
-         final StringPair pair = stringFields[i];
-         serializeStringField(buffer, pair.name(), pair.value(), notFirstField);
-         notFirstField = true;
+         serializeStringField(buffer, stringFields[i]);
       }
 
       for (int i = 0; i < longFieldIndex; i++) {
-         final LongPair pair = longFields[i];
-         serializeLongField(buffer, pair.name(), pair.value(), notFirstField);
-         notFirstField = true;
+         serializeLongField(buffer, longFields[i]);
       }
 
       for (int i = 0; i < doubleFieldIndex; i++) {
-         final DoublePair pair = doubleFields[i];
-         serializeDoubleField(buffer, pair.name(), pair.value(), notFirstField);
-         notFirstField = true;
+         serializeDoubleField(buffer, doubleFields[i]);
       }
 
       for (int i = 0; i < booleanFieldIndex; i++) {
-         final BooleanPair pair = boolFields[i];
-         serializeBooleanField(buffer, pair.name(), pair.value(), notFirstField);
-         notFirstField = true;
+         serializeBooleanField(buffer, boolFields[i]);
       }
 
-      if (timestamp != null) {
-         serializeTimestamp(buffer, timestamp);
-      }
+      serializeTimestamp(buffer, timestamp);
 
       buffer.put((byte) '\n');
    }
 
-   void reset() {
-      final int len = tagIndex;
+   void release() {
+      reset();
+      parentFactory.returnPoint(this);
+   }
+
+   private void reset() {
+      final int len = stringFieldIndex;
       for (int i = 0; i < len; i++) {
-         tags[i].reset();
+         stringFields[i].reset();
       }
 
       tagMark = 0;
@@ -212,237 +188,174 @@ public class Point implements Poolable, AutoCloseable {
       stringFieldIndex = 0;
       doubleFieldIndex = 0;
       booleanFieldIndex = 0;
-
-      timestamp = null;
+      timestamp = 0;
+      firstFieldWritten = false;
    }
 
 
-   /***************************************************************************
-    * Where all the magic happens...
+   /*********************************************************************************************
+    * Serialization
     */
 
-   static class PointSerializer {
-      // private static final int MAX_BUFFER_COUNTS = Integer.getInteger("com.zaxxer.influx4j.maxBuffersPerPoint", 64);
+   void serializeMeasurement(final ByteBuffer buffer, final String measurement) {
+      escapeCommaSpace(buffer, measurement);
+   }
 
-      // private final BufferPoolManager bufferPool;
-      // private final PoolableByteBuffer[] poolTagBuffers;
-      // private final PoolableByteBuffer[] poolFieldBuffers;
-      // private ByteBuffer tagsBuffer;
-      // private ByteBuffer fieldBuffer;
-      // private boolean hasField;
-      // private int tagBufferNdx;
-      // private int fieldBufferNdx;
+   void serializeTag(final ByteBuffer buffer, final StringPair pair) {
+      buffer.put((byte) ',');
+      escapeTagKeyOrValue(buffer, pair.name(), containsUnicode(pair.name()));
+      buffer.put((byte) '=');
+      escapeTagKeyOrValue(buffer, pair.value(), containsUnicode(pair.value()));
+   }
 
-      // AggregateBuffer(final BufferPoolManager bufferPool) {
-      //    this.bufferPool = bufferPool;
-      //    this.poolTagBuffers = new PoolableByteBuffer[MAX_BUFFER_COUNTS];
-      //    this.poolFieldBuffers = new PoolableByteBuffer[MAX_BUFFER_COUNTS];
-      // }
+   void serializeStringField(final ByteBuffer buffer, final StringPair pair) {
+      addFieldSeparator(buffer);
+      escapeFieldKey(buffer, pair.name(), containsUnicode(pair.name));
+      buffer.put((byte) '=');
+      buffer.put((byte) '"');
+      escapeFieldValue(buffer, pair.value(), containsUnicode(pair.value()));
+      buffer.put((byte) '"');
+   }
 
-      // private void mark() {
-      //    tagsBuffer.mark();
-      //    fieldBuffer.mark();
-      // }
+   void serializeLongField(final ByteBuffer buffer, final LongPair pair) {
+      addFieldSeparator(buffer);
+      escapeFieldKey(buffer, pair.name(), containsUnicode(pair.name()));
+      buffer.put((byte) '=');
+      writeLongToBuffer(pair.value(), buffer);
+      buffer.put((byte) 'i');
+   }
 
-      // private void rewind() {
-      //    tagsBuffer.reset();
-      //    fieldBuffer.reset();
-      // }
+   void serializeDoubleField(final ByteBuffer buffer, final DoublePair pair) {
+      addFieldSeparator(buffer);
+      escapeFieldKey(buffer, pair.name(), containsUnicode(pair.name()));
+      buffer.put((byte) '=');
+      writeDoubleToBuffer(pair.value(), buffer);
+   }
 
-      // private void reset() {
-      //    Arrays.fill(poolTagBuffers, null);
-      //    Arrays.fill(poolFieldBuffers, null);
+   void serializeBooleanField(final ByteBuffer buffer, final BooleanPair pair) {
+      addFieldSeparator(buffer);
+      escapeFieldKey(buffer, pair.name(), containsUnicode(pair.name()));
+      buffer.put((byte) '=');
+      buffer.put(pair.value() ? (byte) 't' : (byte) 'f');
+   }
 
-      //    tagBufferNdx = 0;
-      //    fieldBufferNdx = 0;
+   void serializeTimestamp(final ByteBuffer buffer, final long timestamp) {
+      buffer.put((byte) ' ');
+      writeLongToBuffer(timestamp, buffer);
+   }
 
-      //    PoolableByteBuffer tmpTagBuffer = bufferPool.borrow128Buffer();
-      //    poolTagBuffers[tagBufferNdx++] = tmpTagBuffer;
-      //    tagsBuffer = tmpTagBuffer.getBuffer();
+   /*********************************************************************************************
+    * Escape handling
+    */
 
-      //    tmpTagBuffer = bufferPool.borrow128Buffer();
-      //    poolFieldBuffers[fieldBufferNdx++] = tmpTagBuffer;
-      //    fieldBuffer = tmpTagBuffer.getBuffer();
-      //    fieldBuffer.put((byte) ' ');
-      //    hasField = false;
-      // }
+   private static void escapeTagKeyOrValue(final ByteBuffer buffer, final String string, final boolean isUnicode) {
+      escapeCommaEqualSpace(string, buffer, isUnicode);
+   }
 
-      // private int enqueueBuffers(final ArrayList<PoolableByteBuffer> buffers) {
-      //    ensureFieldBufferCapacity(1);
-      //    fieldBuffer.put((byte) '\n');
+   private static void escapeFieldKey(final ByteBuffer buffer, final String key, final boolean isUnicode) {
+      escapeCommaEqualSpace(key, buffer, isUnicode);
+   }
 
-      //    int contentLength = 0;
-      //    for (int i = 0; i < tagBufferNdx; i++) {
-      //       final PoolableByteBuffer buffer = poolTagBuffers[i];
-      //       contentLength += buffer.getBuffer().flip().remaining();
-      //       buffers.add(buffer);
-      //    }
-      //    for (int i = 0; i < fieldBufferNdx; i++) {
-      //       final PoolableByteBuffer buffer = poolFieldBuffers[i];
-      //       contentLength += buffer.getBuffer().flip().remaining();
-      //       buffers.add(buffer);
-      //    }
-      //    return contentLength;
-      // }
+   private static void escapeFieldValue(final ByteBuffer buffer, final String value, final boolean isUnicode) {
+      escapeDoubleQuote(value, buffer, isUnicode);
+   }
 
-      /*********************************************************************************************
-       * Serialization
-       */
-
-      static void serializeMeasurement(final ByteBuffer buffer, final String measurement) {
-         escapeCommaSpace(buffer, measurement);
-      }
-
-      static void serializeTag(final ByteBuffer buffer, final String key, final String value) {
-         buffer.put((byte) ',');
-         escapeTagKeyOrValue(buffer, key, containsUnicode(key));
-         buffer.put((byte) '=');
-         escapeTagKeyOrValue(buffer, value, containsUnicode(value));
-      }
-
-      static void serializeStringField(final ByteBuffer buffer, final String field, final String value, final boolean notFirstField) {
-         addFieldSeparator(buffer, notFirstField);
-         escapeFieldKey(buffer, field, containsUnicode(field));
-         buffer.put((byte) '=');
-         buffer.put((byte) '"');
-         escapeFieldValue(buffer, value, containsUnicode(value));
-         buffer.put((byte) '"');
-      }
-
-      static void serializeLongField(final ByteBuffer buffer, final String field, final long value, final boolean notFirstField) {
-         addFieldSeparator(buffer, notFirstField);
-         escapeFieldKey(buffer, field, containsUnicode(field));
-         buffer.put((byte) '=');
-         writeLongToBuffer(value, buffer);
-         buffer.put((byte) 'i');
-      }
-
-      static void serializeDoubleField(final ByteBuffer buffer, final String field, final double value, final boolean notFirstField) {
-         addFieldSeparator(buffer, notFirstField);
-         escapeFieldKey(buffer, field, containsUnicode(field));
-         buffer.put((byte) '=');
-         writeDoubleToBuffer(value, buffer);
-      }
-
-      static void serializeBooleanField(final ByteBuffer buffer, final String field, final boolean value, final boolean notFirstField) {
-         addFieldSeparator(buffer, notFirstField);
-         escapeFieldKey(buffer, field, containsUnicode(field));
-         buffer.put((byte) '=');
-         buffer.put(value ? (byte) 't' : (byte) 'f');
-      }
-
-      static void serializeTimestamp(final ByteBuffer buffer, final long timestamp) {
-         buffer.put((byte) ' ');
-         writeLongToBuffer(timestamp, buffer);
-      }
-
-      /*********************************************************************************************
-       * Escape handling
-       */
-
-      private static void escapeTagKeyOrValue(final ByteBuffer buffer, final String string, final boolean isUnicode) {
-         escapeCommaEqualSpace(string, buffer, isUnicode);
-      }
-
-      private static void escapeFieldKey(final ByteBuffer buffer, final String key, final boolean isUnicode) {
-         escapeCommaEqualSpace(key, buffer, isUnicode);
-      }
-
-      private static void escapeFieldValue(final ByteBuffer buffer, final String value, final boolean isUnicode) {
-         escapeDoubleQuote(value, buffer, isUnicode);
-      }
-
-      private static void escapeCommaSpace(final ByteBuffer buffer, final String string) {
-         if (containsCommaSpace(string)) {
-            final byte[] bytes = string.getBytes();
-            for (int i = 0; i < bytes.length; i++) {
-               switch (bytes[i]) {
-                  case ',':
-                  case ' ':
-                     buffer.put((byte) '\\');
-                     buffer.put(bytes[i]);
-                     break;
-                  default:
-                     buffer.put(bytes[i]);
-               }
-            }
-         }
-         else {
-            final int pos = buffer.position();
-            string.getBytes(0, string.length(), buffer.array(), pos);
-            buffer.position(pos + string.length());
-         }
-      }
-
-      private static void escapeCommaEqualSpace(final String string, final ByteBuffer buffer, final boolean isUnicode) {
-         if (isUnicode || containsCommaEqualSpace(string)) {
-            final byte[] bytes = string.getBytes();
-            for (int i = 0; i < bytes.length; i++) {
-               switch (bytes[i]) {
-                  case ',':
-                  case '=':
-                  case ' ':
-                     buffer.put((byte) '\\');
-                     buffer.put(bytes[i]);
-                     break;
-                  default:
-                     buffer.put(bytes[i]);
-               }
-            }
-         }
-         else {
-            final int pos = buffer.position();
-            string.getBytes(0, string.length(), buffer.array(), pos);
-            buffer.position(pos + string.length());
-         }
-      }
-
-      private static void escapeDoubleQuote(final String string, final ByteBuffer buffer, final boolean isUnicode) {
-         if (isUnicode || string.indexOf('"') != -1) {
-            final byte[] bytes = string.getBytes();
-            for (int i = 0; i < bytes.length; i++) {
-               if (bytes[i] == '"') {
-                  buffer.put((byte) '\\');
-               }
-               buffer.put(bytes[i]);
-            }
-         }
-         else {
-            final int pos = buffer.position();
-            string.getBytes(0, string.length(), buffer.array(), pos);
-            buffer.position(pos + string.length());
-         }
-      }
-
-      private static boolean containsCommaSpace(final String string) {
-         for (int i = 0; i < string.length(); i++) {
-            switch (string.charAt(i)) {
+   private static void escapeCommaSpace(final ByteBuffer buffer, final String string) {
+      if (containsCommaSpace(string)) {
+         final byte[] bytes = string.getBytes();
+         for (int i = 0; i < bytes.length; i++) {
+            switch (bytes[i]) {
                case ',':
                case ' ':
-                  return true;
+                  buffer.put((byte) '\\');
+                  buffer.put(bytes[i]);
+                  break;
+               default:
+                  buffer.put(bytes[i]);
             }
          }
-         return false;
       }
+      else {
+         final int pos = buffer.position();
+         string.getBytes(0, string.length(), buffer.array(), pos);
+         buffer.position(pos + string.length());
+      }
+   }
 
-      private static boolean containsCommaEqualSpace(final String string) {
-         for (int i = 0; i < string.length(); i++) {
-            switch (string.charAt(i)) {
+   private static void escapeCommaEqualSpace(final String string, final ByteBuffer buffer, final boolean isUnicode) {
+      if (isUnicode || containsCommaEqualSpace(string)) {
+         final byte[] bytes = string.getBytes();
+         for (int i = 0; i < bytes.length; i++) {
+            switch (bytes[i]) {
                case ',':
                case '=':
                case ' ':
-                  return true;
+                  buffer.put((byte) '\\');
+                  buffer.put(bytes[i]);
+                  break;
+               default:
+                  buffer.put(bytes[i]);
             }
          }
-         return false;
       }
+      else {
+         final int pos = buffer.position();
+         string.getBytes(0, string.length(), buffer.array(), pos);
+         buffer.position(pos + string.length());
+      }
+   }
 
-      /*********************************************************************************************
-       * Miscellaneous
-       */
+   private static void escapeDoubleQuote(final String string, final ByteBuffer buffer, final boolean isUnicode) {
+      if (isUnicode || string.indexOf('"') != -1) {
+         final byte[] bytes = string.getBytes();
+         for (int i = 0; i < bytes.length; i++) {
+            if (bytes[i] == '"') {
+               buffer.put((byte) '\\');
+            }
+            buffer.put(bytes[i]);
+         }
+      }
+      else {
+         final int pos = buffer.position();
+         string.getBytes(0, string.length(), buffer.array(), pos);
+         buffer.position(pos + string.length());
+      }
+   }
 
-      private static void addFieldSeparator(final ByteBuffer buffer, final boolean notFirstField) {
-         buffer.put((byte) (notFirstField ? ',' : ' '));
+   private static boolean containsCommaSpace(final String string) {
+      for (int i = 0; i < string.length(); i++) {
+         switch (string.charAt(i)) {
+            case ',':
+            case ' ':
+               return true;
+         }
+      }
+      return false;
+   }
+
+   private static boolean containsCommaEqualSpace(final String string) {
+      for (int i = 0; i < string.length(); i++) {
+         switch (string.charAt(i)) {
+            case ',':
+            case '=':
+            case ' ':
+               return true;
+         }
+      }
+      return false;
+   }
+
+   /*********************************************************************************************
+    * Miscellaneous
+    */
+
+   private void addFieldSeparator(final ByteBuffer buffer) {
+      if (firstFieldWritten) {
+         buffer.put((byte) ',');
+      }
+      else {
+         firstFieldWritten = true;
+         buffer.put((byte) ' ');
       }
    }
 
@@ -454,7 +367,7 @@ public class Point implements Poolable, AutoCloseable {
       }
 
       @Override
-      public int compare(int a, int b) {
+      public int compare(final int a, final int b) {
          return tags[a].name().compareTo(tags[b].name());
       }
    }
@@ -502,10 +415,6 @@ public class Point implements Poolable, AutoCloseable {
       long value() {
          return value;
       }
-
-      void reset() {
-         name = null;
-      }
    }
 
    private static class DoublePair {
@@ -524,10 +433,6 @@ public class Point implements Poolable, AutoCloseable {
       double value() {
          return value;
       }
-
-      void reset() {
-         name = null;
-      }
    }
 
    private static class BooleanPair {
@@ -545,10 +450,6 @@ public class Point implements Poolable, AutoCloseable {
 
       boolean value() {
          return value;
-      }
-
-      void reset() {
-         name = null;
       }
    }
 }
