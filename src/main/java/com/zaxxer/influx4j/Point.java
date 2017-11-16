@@ -197,18 +197,18 @@ public class Point {
     * Serialization
     */
 
-   void serializeMeasurement(final ByteBuffer buffer, final String measurement) {
+   private void serializeMeasurement(final ByteBuffer buffer, final String measurement) {
       escapeCommaSpace(buffer, measurement);
    }
 
-   void serializeTag(final ByteBuffer buffer, final StringPair pair) {
+   private void serializeTag(final ByteBuffer buffer, final StringPair pair) {
       buffer.put((byte) ',');
       escapeTagKeyOrValue(buffer, pair.name());
       buffer.put((byte) '=');
       escapeTagKeyOrValue(buffer, pair.value());
    }
 
-   void serializeStringField(final ByteBuffer buffer, final StringPair pair) {
+   private void serializeStringField(final ByteBuffer buffer, final StringPair pair) {
       addFieldSeparator(buffer);
       escapeFieldKey(buffer, pair.name());
       buffer.put((byte) '=');
@@ -217,7 +217,7 @@ public class Point {
       buffer.put((byte) '"');
    }
 
-   void serializeLongField(final ByteBuffer buffer, final LongPair pair) {
+   private void serializeLongField(final ByteBuffer buffer, final LongPair pair) {
       addFieldSeparator(buffer);
       escapeFieldKey(buffer, pair.name());
       buffer.put((byte) '=');
@@ -225,21 +225,21 @@ public class Point {
       buffer.put((byte) 'i');
    }
 
-   void serializeDoubleField(final ByteBuffer buffer, final DoublePair pair) {
+   private void serializeDoubleField(final ByteBuffer buffer, final DoublePair pair) {
       addFieldSeparator(buffer);
       escapeFieldKey(buffer, pair.name());
       buffer.put((byte) '=');
       writeDoubleToBuffer(pair.value(), buffer);
    }
 
-   void serializeBooleanField(final ByteBuffer buffer, final BooleanPair pair) {
+   private void serializeBooleanField(final ByteBuffer buffer, final BooleanPair pair) {
       addFieldSeparator(buffer);
       escapeFieldKey(buffer, pair.name());
       buffer.put((byte) '=');
       buffer.put(pair.value() ? (byte) 't' : (byte) 'f');
    }
 
-   void serializeTimestamp(final ByteBuffer buffer, final long timestamp) {
+   private void serializeTimestamp(final ByteBuffer buffer, final long timestamp) {
       buffer.put((byte) ' ');
       writeLongToBuffer(timestamp, buffer);
    }
@@ -325,7 +325,7 @@ public class Point {
    private static boolean containsCommaSpace(final String string) {
       for (int i = 0; i < string.length(); i++) {
          final char c = string.charAt(i);
-         if (c == ',' || c == ' ' || c > '~') return true;
+         if (c == ' ' || c == ',' || c > '~') return true;
       }
       return false;
    }
@@ -352,7 +352,7 @@ public class Point {
       }
    }
 
-   private static class ParallelTagArrayComparator implements PrimitiveArraySort.IntComparator {
+   private static final class ParallelTagArrayComparator implements PrimitiveArraySort.IntComparator {
       private final StringPair[] tags;
 
       private ParallelTagArrayComparator(final StringPair[] tags) {
