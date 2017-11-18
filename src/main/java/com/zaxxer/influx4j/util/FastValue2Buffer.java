@@ -58,9 +58,6 @@ public class FastValue2Buffer {
 
    private static final ThreadLocal<FastDtoaBuffer> THREAD_FAST_DTOA_BUFFER = new ThreadLocal<>();
 
-   private static final int NO_NEGATIVE_OFFSET = 0;
-   private static final int NEGATIVE_OFFSET = 1;
-
    private static final byte[] LONG_MINVALUE_BYTES = String.valueOf(Long.MIN_VALUE).getBytes();
 
    private FastValue2Buffer() {
@@ -78,10 +75,8 @@ public class FastValue2Buffer {
 
    public static void writeLongToBuffer(final long value, final ByteBuffer buffer) {
       final long v;
-      final int negOffset;
       if (value >= 0) {
          v = value;
-         negOffset = NO_NEGATIVE_OFFSET;
       }
       else if (value == Long.MIN_VALUE) {
          buffer.put(LONG_MINVALUE_BYTES);
@@ -90,7 +85,6 @@ public class FastValue2Buffer {
       else {
          v = -value;
          buffer.put((byte) '-');
-         negOffset = NEGATIVE_OFFSET;
       }
 
       final int offset = buffer.position();
@@ -98,7 +92,7 @@ public class FastValue2Buffer {
       final byte[] bytes = buffer.array();
 
       writeNumber(bytes, len, v, offset);
-      buffer.position(buffer.position() + len + negOffset);
+      buffer.position(buffer.position() + len);
    }
 
    private static void writeNumber(final byte[] buffer, final int len, final long value, final int offset) {

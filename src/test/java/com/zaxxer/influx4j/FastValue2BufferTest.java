@@ -126,17 +126,27 @@ public class FastValue2BufferTest
    @Test
    public void testOneMillionRandomLongs() {
       final ByteBuffer buffer = ByteBuffer.allocate(64);
-      final byte[] bytes = new byte[20];
+      final byte[] bytes = new byte[21];
       final ThreadLocalRandom tlr = ThreadLocalRandom.current();
 
       for (int i = 0; i < 1_000_000; i++) {
          final long number = tlr.nextLong();
          FastValue2Buffer.writeLongToBuffer(number, buffer);
 
-         final String numberStr = String.valueOf(number);
          buffer.flip();
-         buffer.get(bytes, 0, numberStr.length());
-         Assert.assertEquals(numberStr, new String(bytes, 0, numberStr.length()));
+         final int length = buffer.remaining();
+         buffer.get(bytes, 0, length);
+
+         final String ourString = new String(bytes, 0, length);
+         final String javaString = String.valueOf(number);
+
+         if (!javaString.equals(ourString)) {
+            for (int j = 0; j < length; j++) {
+               System.out.printf("byte[%d] = %d ('%s')\n", j, bytes[j], "" + ((char) bytes[j]));
+            }
+         }
+
+         Assert.assertEquals(javaString, ourString);
          buffer.clear();
       }
    }
