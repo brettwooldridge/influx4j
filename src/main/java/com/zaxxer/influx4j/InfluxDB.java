@@ -388,14 +388,15 @@ public class InfluxDB implements AutoCloseable {
       public void run() {
          final ByteBuffer buffer = ByteBuffer.allocate(SNDRCV_BUFFER_SIZE - HTTP_HEADER_BUFFER_SIZE);
          try {
-            while (true) {
+            while (!shutdown) {
                final long startNs = nanoTime();
-               do {
-                  if (buffer.position() == 0) {
-                     httpHeaders.flip();
-                     buffer.put(httpHeaders);
-                  }
 
+               if (buffer.position() == 0) {
+                  httpHeaders.flip();
+                  buffer.put(httpHeaders);
+               }
+
+               do {
                   final Point point = pointQueue.poll();
                   if (point == null) break;
                   try {
@@ -408,9 +409,8 @@ public class InfluxDB implements AutoCloseable {
 
                if (buffer.position() > httpHeaders.limit()) {
                   writeBuffers(buffer);
+                  continue;
                }
-
-               if (shutdown) break;
 
                final long parkTime = autoFlushPeriod - (nanoTime() - startNs);
                if (parkTime > 0) {
