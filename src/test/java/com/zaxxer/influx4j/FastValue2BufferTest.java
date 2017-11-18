@@ -22,6 +22,9 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.nio.ByteBuffer;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Created by brettw on 2017/10/30.
@@ -121,18 +124,36 @@ public class FastValue2BufferTest
    }
 
    @Test
+   public void testOneMillionRandomLongs() {
+      final ByteBuffer buffer = ByteBuffer.allocate(64);
+      final byte[] bytes = new byte[20];
+      final ThreadLocalRandom tlr = ThreadLocalRandom.current();
+
+      for (int i = 0; i < 1_000_000; i++) {
+         final long number = tlr.nextLong();
+         FastValue2Buffer.writeLongToBuffer(number, buffer);
+
+         final String numberStr = String.valueOf(number);
+         buffer.flip();
+         buffer.get(bytes, 0, numberStr.length());
+         Assert.assertEquals(numberStr, new String(bytes, 0, numberStr.length()));
+         buffer.clear();
+      }
+   }
+
+   @Test
    public void testDouble2Buffer1Digit() {
       final ByteBuffer buffer = ByteBuffer.allocate(64);
       final byte[] bytes = new byte[15];
 
       FastValue2Buffer.writeDoubleToBuffer(0d, buffer);
-      
+
       buffer.flip();
       buffer.get(bytes, 0, buffer.limit());
       Assert.assertEquals("0", new String(bytes, 0, buffer.limit()));
 
       buffer.clear();
-      
+
       FastValue2Buffer.writeDoubleToBuffer(9.0d, buffer);
 
       buffer.flip();
@@ -158,7 +179,7 @@ public class FastValue2BufferTest
       final byte[] bytes = new byte[15];
 
       FastValue2Buffer.writeDoubleToBuffer(12345.6789d, buffer);
-      
+
       buffer.flip();
       buffer.get(bytes, 0, buffer.limit());
       Assert.assertEquals(String.valueOf(12345.6789d), new String(bytes, 0, buffer.limit()));
@@ -170,9 +191,60 @@ public class FastValue2BufferTest
       final byte[] bytes = new byte[25];
 
       FastValue2Buffer.writeDoubleToBuffer(Double.MIN_VALUE, buffer);
-      
+
       buffer.flip();
       buffer.get(bytes, 0, buffer.limit());
       Assert.assertTrue(Double.MIN_VALUE == Double.valueOf(new String(bytes, 0, buffer.limit())));
+   }
+
+   @Test
+   public void testOneMillionRandomDoubles() {
+      final ByteBuffer buffer = ByteBuffer.allocate(64);
+      final byte[] bytes = new byte[25];
+      final ThreadLocalRandom tlr = ThreadLocalRandom.current();
+
+      for (int i = 0; i < 1_000_000; i++) {
+         final double number = tlr.nextDouble();
+         FastValue2Buffer.writeDoubleToBuffer(number, buffer);
+
+         buffer.flip();
+         int length = buffer.remaining();
+         buffer.get(bytes, 0, length);
+         final String ourStr = new String(bytes, 0, length).toUpperCase();
+
+         final String numberStr = formatDouble(number, ourStr);
+         if (!numberStr.equals(ourStr)) {
+            System.out.printf("%s != %s, original number %.25f (String.valueOf(%s))\n", numberStr, ourStr, number, String.valueOf(number));
+         }
+
+         Assert.assertEquals(numberStr, ourStr);
+         buffer.clear();
+      }
+   }
+
+   private static String formatDouble(final double d, final String templateString) {
+      final boolean useScientificNotation = templateString.contains("E");
+      if (useScientificNotation) {
+         final int leadingDigits = templateString.indexOf('.');
+         final int trailingDigits = templateString.substring(leadingDigits + 1, templateString.indexOf('E')).length();
+
+         final StringBuilder sb = new StringBuilder();
+         for (int i = 0; i < leadingDigits; i++) {
+            sb.append('#');
+         }
+         sb.append('.');
+         for (int i = 0; i < trailingDigits; i++) {
+            sb.append('#');
+         }
+         sb.append("E0");
+
+         final NumberFormat formatter = new DecimalFormat(sb.toString());
+         return formatter.format(d);
+      }
+      else {
+         final int trailingDigits = templateString.substring(templateString.indexOf('.') + 1).length();
+
+         return String.format("%." + trailingDigits + "f", d);
+      }
    }
 }
