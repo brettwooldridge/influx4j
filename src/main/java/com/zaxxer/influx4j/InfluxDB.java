@@ -27,6 +27,7 @@ import java.net.UnknownHostException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
 import java.nio.ByteBuffer;
 import java.nio.channels.ByteChannel;
@@ -85,17 +86,23 @@ public class InfluxDB implements AutoCloseable {
     * InfluxDB timestamp precision.
     */
    public static enum Precision {
-      NANOSECOND("n"),
-      MICROSECOND("u"),
-      MILLISECOND("ms"),
-      SECOND("s"),
-      MINUTE("m"),
-      HOUR("h");
+      NANOSECOND("n", TimeUnit.NANOSECONDS),
+      MICROSECOND("u", TimeUnit.MICROSECONDS),
+      MILLISECOND("ms", TimeUnit.MILLISECONDS),
+      SECOND("s", TimeUnit.SECONDS),
+      MINUTE("m", TimeUnit.MINUTES),
+      HOUR("h", TimeUnit.HOURS);
 
       private final String precision;
+      private final TimeUnit converter;
 
-      Precision(final String p) {
+      Precision(final String p, final TimeUnit converter) {
          this.precision = p;
+         this.converter = converter;
+      }
+
+      long convert(final long t, final TimeUnit sourceUnit) {
+         return converter.convert(t, sourceUnit);
       }
 
       @Override
@@ -272,7 +279,7 @@ public class InfluxDB implements AutoCloseable {
 
       private SocketConnection createConnection(final String url) {
          try {
-            return new SocketConnection(url, createSocketChannel(), autoFlushPeriod, threadFactory);
+            return new SocketConnection(url, createSocketChannel(), precision, autoFlushPeriod, threadFactory);
          }
          catch (final Exception e) {
             throw new RuntimeException(e);
@@ -339,6 +346,7 @@ public class InfluxDB implements AutoCloseable {
       private final Semaphore shutdownSemaphore;
       private final ByteChannel channel;
       private final Socket rawSocket;
+      private final Precision precision;
       private final MpscArrayQueue<Point> pointQueue;
       private final ByteBuffer httpHeaders;
       private final String url;
@@ -348,11 +356,13 @@ public class InfluxDB implements AutoCloseable {
 
       SocketConnection(final String url,
                              final ByteChannel channel,
+                             final Precision precision,
                              final long autoFlushPeriod,
                              final ThreadFactory threadFactory) throws IOException {
          this.url = url;
          this.rawSocket = (channel instanceof SocketChannel ? (SocketChannel) channel : (SocketChannel) ((TlsChannel) channel).getUnderlying()).socket();
          this.channel = channel;
+         this.precision = precision;
          this.autoFlushPeriod = autoFlushPeriod;
          this.pointQueue = new MpscArrayQueue<>(64 * 1024);
          this.httpHeaders = ByteBuffer.allocate(HTTP_HEADER_BUFFER_SIZE);
@@ -400,7 +410,7 @@ public class InfluxDB implements AutoCloseable {
                   final Point point = pointQueue.poll();
                   if (point == null) break;
                   try {
-                     point.write(buffer);
+                     point.write(buffer, precision);
                   }
                   finally {
                      point.release();

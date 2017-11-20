@@ -21,6 +21,8 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.zaxxer.influx4j.InfluxDB.Precision;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.concurrent.TimeUnit;
@@ -46,7 +48,7 @@ public class LineProtocolTest {
    @Test(expected = IllegalStateException.class)
    public void testNoField() throws IOException {
       pointFactory.createPoint("testMeasurement")
-            .write(null);
+            .write(null, null);
    }
 
    @Test
@@ -57,7 +59,7 @@ public class LineProtocolTest {
       pointFactory.createPoint("testMeasurement")
             .field("boolean", true)
             .timestamp(timestamp, TimeUnit.NANOSECONDS)
-            .write(buffer);
+            .write(buffer, Precision.NANOSECOND);
 
       Assert.assertEquals(tsString("testMeasurement boolean=t", timestamp), buffer2string(buffer));
    }
@@ -70,7 +72,7 @@ public class LineProtocolTest {
       pointFactory.createPoint("com,ma")
             .field("boolean", true)
             .timestamp(timestamp, TimeUnit.NANOSECONDS)
-            .write(buffer);
+            .write(buffer, Precision.NANOSECOND);
 
       Assert.assertEquals(tsString("com\\,ma boolean=t", timestamp), buffer2string(buffer));
 
@@ -79,7 +81,7 @@ public class LineProtocolTest {
       pointFactory.createPoint("sp ace")
             .field("boolean", true)
             .timestamp(timestamp, TimeUnit.NANOSECONDS)
-            .write(buffer);
+            .write(buffer, Precision.NANOSECOND);
       Assert.assertEquals(tsString("sp\\ ace boolean=t", timestamp), buffer2string(buffer));
    }
 
@@ -91,7 +93,7 @@ public class LineProtocolTest {
       pointFactory.createPoint("testMeasurement")
            .field("string", "This is a test")
            .timestamp(timestamp, TimeUnit.NANOSECONDS)
-           .write(buffer);
+           .write(buffer, Precision.NANOSECOND);
 
       Assert.assertEquals(tsString("testMeasurement string=\"This is a test\"", timestamp), buffer2string(buffer));
    }
@@ -104,7 +106,7 @@ public class LineProtocolTest {
       pointFactory.createPoint("testMeasurement")
             .field("string", "This \"is\" a test")
             .timestamp(timestamp, TimeUnit.NANOSECONDS)
-            .write(buffer);
+            .write(buffer, Precision.NANOSECOND);
 
       Assert.assertEquals(tsString("testMeasurement string=\"This \\\"is\\\" a test\"", timestamp), buffer2string(buffer));
    }
@@ -120,7 +122,7 @@ public class LineProtocolTest {
             .field("eq=ual", 2)
             .field("sp ace", 3)
             .timestamp(timestamp, TimeUnit.NANOSECONDS)
-            .write(buffer);
+            .write(buffer, Precision.NANOSECOND);
 
       Assert.assertEquals(tsString("testMeasurement com\\,ma=1i,eq\\=ual=2i,sp\\ ace=3i", timestamp), buffer2string(buffer));
    }
@@ -133,7 +135,7 @@ public class LineProtocolTest {
       pointFactory.createPoint("testMeasurement")
             .field("long", 123456)
             .timestamp(timestamp, TimeUnit.NANOSECONDS)
-            .write(buffer);
+            .write(buffer, Precision.NANOSECOND);
 
       Assert.assertEquals(tsString("testMeasurement long=123456i", timestamp), buffer2string(buffer));
    }
@@ -147,7 +149,7 @@ public class LineProtocolTest {
             .field("boolean", true)
             .field("double", 123456.789d)
             .timestamp(timestamp, TimeUnit.NANOSECONDS)
-            .write(buffer);
+            .write(buffer, Precision.NANOSECOND);
 
       Assert.assertEquals(tsString("testMeasurement double=123456.789,boolean=t", timestamp), buffer2string(buffer));
    }
@@ -162,7 +164,7 @@ public class LineProtocolTest {
             .field("long", Long.MIN_VALUE)
             .field("boolean", true)
             .timestamp(timestamp, TimeUnit.NANOSECONDS)
-            .write(buffer);
+            .write(buffer, Precision.NANOSECOND);
 
       Assert.assertEquals(tsString("testMeasurement string=\"This is a test\",long=-9223372036854775808i,boolean=t", timestamp), buffer2string(buffer));
    }
@@ -171,13 +173,40 @@ public class LineProtocolTest {
    public void testTimestamp() throws IOException {
       final ByteBuffer buffer = ByteBuffer.allocate(128);
 
-      final long timestamp = timestampNs();
       pointFactory.createPoint("testMeasurement")
               .field("boolean", true)
               .timestamp(1509428908609L, TimeUnit.MILLISECONDS)
-              .write(buffer);
+              .write(buffer, Precision.NANOSECOND);
 
       Assert.assertEquals("testMeasurement boolean=t 1509428908609000000\n", buffer2string(buffer));
+   }
+
+   @Test
+   public void testTimestampPrecision() throws IOException {
+      final ByteBuffer buffer = ByteBuffer.allocate(128);
+
+      final long timestamp1 = System.currentTimeMillis();
+      final Point point1 = pointFactory.createPoint("testMeasurement")
+              .field("boolean", true)
+              .timestamp(timestamp1, TimeUnit.MILLISECONDS);
+
+      point1.write(buffer, Precision.NANOSECOND);
+
+      Assert.assertEquals("testMeasurement boolean=t " + TimeUnit.MILLISECONDS.toNanos(timestamp1) + "\n", buffer2string(buffer));
+
+      point1.release();
+      buffer.clear();
+
+      final long timestamp2 = TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis());
+      final Point point2 = pointFactory.createPoint("testMeasurement")
+              .field("boolean", true)
+              .timestamp(timestamp2, TimeUnit.SECONDS);
+
+      point2.write(buffer, Precision.MICROSECOND);
+
+      Assert.assertEquals("testMeasurement boolean=t " + TimeUnit.SECONDS.toMicros(timestamp2) + "\n", buffer2string(buffer));
+
+      point2.release();
    }
 
    @Test
@@ -189,7 +218,7 @@ public class LineProtocolTest {
               .tag("tag1", "one")
               .field("boolean", true)
               .timestamp(timestamp, TimeUnit.NANOSECONDS)
-              .write(buffer);
+              .write(buffer, Precision.NANOSECOND);
 
       Assert.assertEquals(tsString("testMeasurement,tag1=one boolean=t", timestamp), buffer2string(buffer));
    }
@@ -204,7 +233,7 @@ public class LineProtocolTest {
               .tag("tag2", "two")
               .field("boolean", true)
               .timestamp(timestamp, TimeUnit.NANOSECONDS)
-              .write(buffer);
+              .write(buffer, Precision.NANOSECOND);
 
       Assert.assertEquals(tsString("testMeasurement,tag1=one,tag2=two boolean=t", timestamp), buffer2string(buffer));
    }
@@ -221,7 +250,7 @@ public class LineProtocolTest {
               .tag("mouse", "2")
               .field("boolean", true)
               .timestamp(timestamp, TimeUnit.NANOSECONDS)
-              .write(buffer);
+              .write(buffer, Precision.NANOSECOND);
 
       Assert.assertEquals(tsString("testMeasurement,apple=1,mouse=2,table=3,zebra=4 boolean=t", timestamp), buffer2string(buffer));
    }
@@ -242,7 +271,7 @@ public class LineProtocolTest {
                  .field("boolean", true)
                  .timestamp(timestamp, TimeUnit.NANOSECONDS);
 
-         point1.write(buffer);
+         point1.write(buffer, Precision.NANOSECOND);
          Assert.assertEquals(tsString("testMeasurement,apple=1,mouse=2,zebra=3 boolean=t", timestamp), buffer2string(buffer));
 
          point1.release();
@@ -256,7 +285,7 @@ public class LineProtocolTest {
 
          Assert.assertEquals(identityHashCode(point1), identityHashCode(point2));
 
-         point2.write(buffer);
+         point2.write(buffer, Precision.NANOSECOND);
          point2.release();
 
          Assert.assertEquals(tsString("testMeasurement2,chocolate=1,strawberry=2 boolean=f", timestamp), buffer2string(buffer));
@@ -280,7 +309,7 @@ public class LineProtocolTest {
          .field("double", 123456789.1234)
          .timestamp(timestamp, TimeUnit.NANOSECONDS);
 
-      point.write(buffer);
+      point.write(buffer, Precision.NANOSECOND);
 
       Assert.assertEquals(tsString("testMeasurement,apple=1,mouse=2,table=3 boolean=t,double=123456789.1234", timestamp), buffer2string(buffer));
 
@@ -289,7 +318,7 @@ public class LineProtocolTest {
       point.rewind()
          .tag("zebra", "4")
          .field("double", 987654321.9876)
-         .write(buffer);
+         .write(buffer, Precision.NANOSECOND);
 
       Assert.assertEquals(tsString("testMeasurement,apple=1,table=3,zebra=4 boolean=t,double=987654321.9876", timestamp), buffer2string(buffer));
 
@@ -299,7 +328,7 @@ public class LineProtocolTest {
          .measurement("testMeasurement2")
          .tag("zebra", "4")
          .field("double", 12121212.1212)
-         .write(buffer);
+         .write(buffer, Precision.NANOSECOND);
 
       Assert.assertEquals(tsString("testMeasurement2,apple=1,table=3,zebra=4 boolean=t,double=12121212.1212", timestamp), buffer2string(buffer));
 

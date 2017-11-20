@@ -19,6 +19,7 @@ package com.zaxxer.influx4j;
 import java.nio.ByteBuffer;
 import java.util.concurrent.TimeUnit;
 
+import com.zaxxer.influx4j.InfluxDB.Precision;
 import com.zaxxer.influx4j.util.PrimitiveArraySort;
 
 import static com.zaxxer.influx4j.util.FastValue2Buffer.writeDoubleToBuffer;
@@ -45,6 +46,7 @@ public class Point {
 
    private String measurement;
    private long timestamp;
+   private TimeUnit timeUnit;
    private boolean firstFieldWritten;
 
    private final PointFactory parentFactory;
@@ -101,12 +103,14 @@ public class Point {
    }
 
    public Point timestamp() {
-      this.timestamp = TimeUnit.MILLISECONDS.toNanos(System.currentTimeMillis());
+      this.timestamp = System.currentTimeMillis();
+      this.timeUnit = TimeUnit.MILLISECONDS;
       return this;
    }
 
    public Point timestamp(final long timestamp, final TimeUnit timeUnit) {
-      this.timestamp = timeUnit.toNanos(timestamp);
+      this.timestamp = timestamp;
+      this.timeUnit = timeUnit;
       return this;
    }
 
@@ -125,7 +129,7 @@ public class Point {
       return this;
    }
 
-   void write(final ByteBuffer buffer) {
+   void write(final ByteBuffer buffer, final Precision precision) {
       final int fieldCount = longFieldIndex + booleanFieldIndex + stringFieldIndex + doubleFieldIndex;
 
       if (fieldCount == 0) {
@@ -166,7 +170,7 @@ public class Point {
          serializeBooleanField(buffer, boolFields[i]);
       }
 
-      serializeTimestamp(buffer, timestamp);
+      serializeTimestamp(buffer, precision.convert(timestamp, timeUnit));
 
       buffer.put((byte) '\n');
    }
