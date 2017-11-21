@@ -17,6 +17,8 @@
 package com.zaxxer.influx4j;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
@@ -53,7 +55,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
  */
 public class InfluxDB implements AutoCloseable {
 
-   /**
+   /*****************************************************************************************
     * InfluxDB wire protocols.
     */
    public static enum Protocol {
@@ -67,7 +69,7 @@ public class InfluxDB implements AutoCloseable {
       }
    }
 
-   /**
+   /*****************************************************************************************
     * InfluxDB data consistency.
     */
    public static enum Consistency {
@@ -82,7 +84,7 @@ public class InfluxDB implements AutoCloseable {
       }
    }
 
-   /**
+   /*****************************************************************************************
     * InfluxDB timestamp precision.
     */
    public static enum Precision {
@@ -118,15 +120,45 @@ public class InfluxDB implements AutoCloseable {
    private static final ConcurrentHashMap<String, SocketConnection> CONNECTIONS = new ConcurrentHashMap<>();
 
    private final SocketConnection connection;
+   private final String host;
+   private final String username;
+   private final String password;
+   private final int port;
+   private final Protocol protocol;
 
-   private InfluxDB(final SocketConnection connection) {
+   private InfluxDB(final SocketConnection connection,
+                    final String host,
+                    final int port,
+                    final Protocol protocol,
+                    final String username,
+                    final String password) {
       this.connection = connection;
+      this.host = host;
+      this.port = port;
+      this.protocol = protocol;
+      this.username = username;
+      this.password = password;
    }
 
+   /*****************************************************************************************
+    * InfluxDB public methods.
+    */
+
+   /**
+    * Write a {@link Point} to the database.  If the HTTP/S protocol is used, points are buffered
+    * and flushed at the interval specified by the {@link Builder#autoFlushPeriod} (1 second default).
+    * If the UDP protocol is used, points are not buffered and are written immediately to the
+    * database.
+    *
+    * @param point the point to write to the database
+    */
    public void write(final Point point) {
       connection.write(point);
    }
 
+   /**
+    * Close the connection to the database.
+    */
    @Override
    public void close() {
       if (connection != null) {
@@ -134,13 +166,60 @@ public class InfluxDB implements AutoCloseable {
       }
    }
 
+   public String createDatabase(final String name) {
+      return createDatabase(name, host, port, protocol, username, password);
+   }
+
+   /**
+    * Get an instance of an InfluxDB {@link Builder}.
+    */
    public static Builder builder() {
       return new Builder();
    }
 
 
-   /** ***************************************************************************************
-    * Builder for a {@link InfluxDB} instance.  Call {@link InfluxDB#builder()} to
+   private static String createDatabase(final String name,
+                                        final String host,
+                                        final int port,
+                                        final Protocol protocol,
+                                        final String username,
+                                        final String password) {
+      try {
+         final String query = "db="
+            + "&u=" + URLEncoder.encode(username, "utf8")
+            + "&p=" + URLEncoder.encode(password, "utf8")
+            + "&q=create+database+" + URLEncoder.encode(name, "utf8");
+
+            final URI uri = new URI(protocol.toString(), null, host, port, "/query", query, null);
+            final HttpURLConnection httpConnection = (HttpURLConnection) uri.toURL().openConnection();
+            httpConnection.setConnectTimeout((int) SECONDS.toMillis(5));
+            httpConnection.setRequestMethod("POST");
+            httpConnection.setRequestProperty("Host", InetAddress.getLocalHost().getHostName());
+            httpConnection.setRequestProperty("Content-Length", "0");
+
+            final InputStream is = httpConnection.getInputStream();
+            final byte[] buffer = new byte[512];
+            final int read = is.read(buffer);
+            if (read < 12) {
+               final String response = new String(buffer, 0, read);
+               final int status = Integer.valueOf(response.substring(9, 12));
+               if (status > 299) {
+                  return response;
+               }
+
+               return null;
+            }
+            else {
+               return "Unexpected end-of-stream";
+            }
+      }
+      catch (final Exception e) {
+         return e.getMessage();
+      }
+   }
+
+   /*****************************************************************************************
+    * Builder for an {@link InfluxDB} instance.  Call {@link InfluxDB#builder()} to
     * create an instance of the {@link Builder}.
     */
    public static class Builder {
@@ -215,6 +294,13 @@ public class InfluxDB implements AutoCloseable {
          return this;
       }
 
+      public InfluxDB create() {
+         // Errors are ignored except for those that actually throw from createDatabase().
+         createDatabase(database, host, port, protocol, username, password);
+
+         return build();
+      }
+
       public InfluxDB build() {
          if (database == null) throw new IllegalStateException("Influx 'database' must be specified.");
          if (username == null) throw new IllegalStateException("Influx 'username' must be specified.");
@@ -245,7 +331,7 @@ public class InfluxDB implements AutoCloseable {
                   throw new IllegalArgumentException("Unknown protocol: " + protocol);
             }
 
-            return new InfluxDB(connection);
+            return new InfluxDB(connection, host, port, protocol, username, password);
          }
          catch (final IOException e) {
             throw new RuntimeException(e);
@@ -338,8 +424,9 @@ public class InfluxDB implements AutoCloseable {
       }
    }
 
-   /**
-    *
+
+   /*****************************************************************************************
+    * SocketConnection is used for HTTP/S protocol interactions.
     */
    private static class SocketConnection implements Runnable {
       private final static int HTTP_HEADER_BUFFER_SIZE = 512;
