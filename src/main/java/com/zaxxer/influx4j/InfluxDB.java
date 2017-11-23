@@ -570,7 +570,7 @@ public class InfluxDB implements AutoCloseable {
             channel.write(buffer);
 
             final String response = readResponse(buffer);
-            final int status = Integer.valueOf(response.substring(9, 12));
+            final int status = Integer.valueOf(response.substring(9, 13).trim());
             if (status == 401) {
                // re-authenticate?
             }
