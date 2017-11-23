@@ -605,7 +605,7 @@ public class InfluxDB implements AutoCloseable {
             finally {
                rawSocket.setSoTimeout(0);
             }
-         } while (offset < 12);
+         } while (offset < 14);
 
          // HTTP/1.1 xxx
          return new String(bytes, 0, offset);
