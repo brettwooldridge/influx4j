@@ -40,6 +40,7 @@ import javax.net.ssl.SSLContext;
 import org.jctools.queues.MpscArrayQueue;
 
 import com.zaxxer.influx4j.util.DaemonThreadFactory;
+import com.zaxxer.influx4j.util.HttpElf;
 
 import tlschannel.ClientTlsChannel;
 import tlschannel.TlsChannel;
@@ -229,7 +230,7 @@ public class InfluxDB implements AutoCloseable {
       private String password = "";
       private String host = "localhost";
       private int port = 8086;
-      private long autoFlushPeriod = MILLISECONDS.toNanos(500);
+      private long autoFlushPeriod = SECONDS.toNanos(1);
       private Protocol protocol = Protocol.HTTP;
       private Consistency consistency = Consistency.ONE;
       private Precision precision = Precision.NANOSECOND;
@@ -346,6 +347,7 @@ public class InfluxDB implements AutoCloseable {
             sockChannel.setOption(StandardSocketOptions.SO_SNDBUF, SNDRCV_BUFFER_SIZE);
             sockChannel.setOption(StandardSocketOptions.SO_RCVBUF, SNDRCV_BUFFER_SIZE);
             sockChannel.connect(new InetSocketAddress(host, port));
+            sockChannel.configureBlocking(false);
 
             ByteChannel channel = null;
             if (protocol == Protocol.HTTPS) {
@@ -383,20 +385,17 @@ public class InfluxDB implements AutoCloseable {
                         " HTTP/1.1\r\n"
                      ).getBytes());
             buffer.put("Connection: Keep-Alive\r\n".getBytes()).put("Host: ".getBytes()).put(InetAddress.getLocalHost().getHostName().getBytes()).put("\r\n\r\n".getBytes());
+
             buffer.flip();
             channel.write(buffer);
-
             buffer.clear();
-            final int read = channel.read(buffer);
-            if (read > 0) {
-               buffer.flip();
-               final String response = new String(buffer.array(), 0, read);
-               if (response.startsWith("HTTP/1.1 2")) {
-                  return true;
-               }
-               else if (response.startsWith("HTTP/1.1 401")) {
-                  return false;
-               }
+
+            final String response = HttpElf.readResponse((SocketChannel) byteChannel, buffer);
+            if (response.startsWith("HTTP/1.1 2")) {
+               return true;
+            }
+            else if (response.startsWith("HTTP/1.1 401")) {
+               return false;
             }
             throw new IOException("Unexpected end-of-stream during connection validation");
          }
@@ -431,8 +430,7 @@ public class InfluxDB implements AutoCloseable {
    private static class SocketConnection implements Runnable {
       private final static int HTTP_HEADER_BUFFER_SIZE = 512;
       private final Semaphore shutdownSemaphore;
-      private final ByteChannel channel;
-      private final Socket rawSocket;
+      private final SocketChannel channel;
       private final Precision precision;
       private final MpscArrayQueue<Point> pointQueue;
       private final ByteBuffer httpHeaders;
@@ -447,8 +445,7 @@ public class InfluxDB implements AutoCloseable {
                              final long autoFlushPeriod,
                              final ThreadFactory threadFactory) throws IOException {
          this.url = url;
-         this.rawSocket = (channel instanceof SocketChannel ? (SocketChannel) channel : (SocketChannel) ((TlsChannel) channel).getUnderlying()).socket();
-         this.channel = channel;
+         this.channel = (channel instanceof SocketChannel ? (SocketChannel) channel : (SocketChannel) ((TlsChannel) channel).getUnderlying());
          this.precision = precision;
          this.autoFlushPeriod = autoFlushPeriod;
          this.pointQueue = new MpscArrayQueue<>(64 * 1024);
@@ -509,9 +506,9 @@ public class InfluxDB implements AutoCloseable {
                   continue;
                }
 
-               final long parkTime = autoFlushPeriod - (nanoTime() - startNs);
-               if (parkTime > 0) {
-                  LockSupport.parkNanos(parkTime);
+               final long parkNs = autoFlushPeriod - (nanoTime() - startNs);
+               if (parkNs > 10000L) {
+                  LockSupport.parkNanos(parkNs);
                }
             }
          }
@@ -567,9 +564,18 @@ public class InfluxDB implements AutoCloseable {
 
          try {
             buffer.flip();
-            channel.write(buffer);
+            while (channel.isConnected()) {
+               channel.write(buffer);
+               if (buffer.remaining() > 0) {
+                  LockSupport.parkNanos(10000L);
+                  continue;
+               }
 
-            final String response = readResponse(buffer);
+               break;
+            }
+            buffer.clear();
+
+            final String response = HttpElf.readResponse(channel, buffer);
             final int status = Integer.valueOf(response.substring(9, 13).trim());
             if (status == 401) {
                // re-authenticate?
@@ -586,29 +592,6 @@ public class InfluxDB implements AutoCloseable {
          finally {
             buffer.clear();
          }
-      }
-
-      private String readResponse(final ByteBuffer buffer) throws IOException {
-         final byte[] bytes = buffer.array();
-         int offset = 0;
-         do {
-            // SocketChannel does not support read timeouts, so we have to read directly from the socket
-            rawSocket.setSoTimeout((int) SECONDS.toMillis(5));
-            try {
-               final int read = rawSocket.getInputStream().read(bytes, offset, 1024 - offset);
-               if (read <= 0) {
-                  break;
-                  // throw new IOException("Unexpected end-of-stream");
-               }
-               offset += read;
-            }
-            finally {
-               rawSocket.setSoTimeout(0);
-            }
-         } while (offset < 14);
-
-         // HTTP/1.1 xxx
-         return new String(bytes, 0, offset);
       }
    }
 }
