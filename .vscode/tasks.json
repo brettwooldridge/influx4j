@@ -6,7 +6,7 @@
         {
             "taskName": "verify",
             "type": "shell",
-            "command": "mvn -B verify",
+            "command": "./build.sh package",
             "group": "build"
         },
         {

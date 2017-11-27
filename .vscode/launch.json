@@ -6,10 +6,17 @@
    "configurations": [
       {
          "type": "java",
-         "name": "Debug (Attach)",
+         "name": "Debug (Remote)",
          "request": "attach",
          "hostName": "localhost",
          "port": 5005
+      },
+      {
+         "type": "java",
+         "name": "Debug (Attach)",
+         "request": "attach",
+         "hostName": "localhost",
+         "port": 0
       }
    ]
 }

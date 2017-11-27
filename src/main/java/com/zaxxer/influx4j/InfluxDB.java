@@ -16,39 +16,29 @@
 
 package com.zaxxer.influx4j;
 
+import static java.lang.System.nanoTime;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
+
+import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.net.StandardSocketOptions;
 import java.net.URI;
+import java.net.URL;
 import java.net.URLEncoder;
-import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
-import java.nio.ByteBuffer;
-import java.nio.channels.ByteChannel;
-import java.nio.channels.DatagramChannel;
-import java.nio.channels.SocketChannel;
-import javax.net.ssl.SSLContext;
-
-import org.jctools.queues.MpscArrayQueue;
 
 import com.zaxxer.influx4j.util.DaemonThreadFactory;
-import com.zaxxer.influx4j.util.HttpElf;
 
-import tlschannel.ClientTlsChannel;
-import tlschannel.TlsChannel;
-
-import static com.zaxxer.influx4j.util.FastValue2Buffer.writeLongToBuffer;
-import static java.lang.System.nanoTime;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.SECONDS;
+import org.jctools.queues.MpscArrayQueue;
 
 
 /**
@@ -118,7 +108,7 @@ public class InfluxDB implements AutoCloseable {
    private static final int SNDRCV_BUFFER_SIZE = Integer.getInteger("com.zaxxer.influx4j.sndrcvBufferSize", 1024 * 1024);
    private static final int MAXIMUM_SERIALIZED_POINT_SIZE = Integer.getInteger("com.zaxxer.influx4j.maxSerializedPointSize", 32 * 1024);
 
-   private static final ConcurrentHashMap<String, SocketConnection> CONNECTIONS = new ConcurrentHashMap<>();
+   private static final ConcurrentHashMap<URL, SocketConnection> CONNECTIONS = new ConcurrentHashMap<>();
 
    private final SocketConnection connection;
    private final String host;
@@ -234,7 +224,6 @@ public class InfluxDB implements AutoCloseable {
       private Protocol protocol = Protocol.HTTP;
       private Consistency consistency = Consistency.ONE;
       private Precision precision = Precision.NANOSECOND;
-      private SSLContext sslContext;
       private ThreadFactory threadFactory;
 
       private Builder() {
@@ -290,11 +279,6 @@ public class InfluxDB implements AutoCloseable {
          return this;
       }
 
-      public Builder setSSLContext(final SSLContext sslContext) {
-         this.sslContext = sslContext;
-         return this;
-      }
-
       public InfluxDB create() {
          // Errors are ignored except for those that actually throw from createDatabase().
          createDatabase(database, host, port, protocol, username, password);
@@ -312,19 +296,23 @@ public class InfluxDB implements AutoCloseable {
             switch (protocol) {
                case HTTP:
                case HTTPS: {
-                  final String url = createBaseURL();
-                  if (!validateConnection(createSocketChannel())) {
+                  if (!validateConnection()) {
                      throw new RuntimeException("Access denied to database '" + database + "' for user '" + username + "'.");
                   }
 
-                  connection = CONNECTIONS.computeIfAbsent(url, this::createConnection);
+                  connection = CONNECTIONS.computeIfAbsent(
+                     createBaseURL("/write",
+                                   "&consistency=" + consistency,
+                                   "&precision=" + precision,
+                                   "&rp=" + URLEncoder.encode(retentionPolicy, "utf8")),
+                                   this::createConnection);
                   break;
                }
                case UDP: {
-                  final DatagramChannel datagramChannel = DatagramChannel.open();
-                  datagramChannel.setOption(StandardSocketOptions.SO_SNDBUF, SNDRCV_BUFFER_SIZE);
-                  datagramChannel.setOption(StandardSocketOptions.SO_RCVBUF, SNDRCV_BUFFER_SIZE);
-                  datagramChannel.connect(InetSocketAddress.createUnresolved(host, port));
+                  // final DatagramChannel datagramChannel = DatagramChannel.open();
+                  // datagramChannel.setOption(StandardSocketOptions.SO_SNDBUF, SNDRCV_BUFFER_SIZE);
+                  // datagramChannel.setOption(StandardSocketOptions.SO_RCVBUF, SNDRCV_BUFFER_SIZE);
+                  // datagramChannel.connect(InetSocketAddress.createUnresolved(host, port));
                   //connection = new SocketConnection(null, datagramChannel, autoFlushPeriod, threadFactory);
                   break;
                }
@@ -339,75 +327,36 @@ public class InfluxDB implements AutoCloseable {
          }
       }
 
-      private ByteChannel createSocketChannel() {
+      private SocketConnection createConnection(final URL url) {
          try {
-            final SocketChannel sockChannel = SocketChannel.open();
-            sockChannel.setOption(StandardSocketOptions.SO_REUSEADDR, true);
-            sockChannel.setOption(StandardSocketOptions.SO_KEEPALIVE, true);
-            sockChannel.setOption(StandardSocketOptions.SO_SNDBUF, SNDRCV_BUFFER_SIZE);
-            sockChannel.setOption(StandardSocketOptions.SO_RCVBUF, SNDRCV_BUFFER_SIZE);
-            sockChannel.connect(new InetSocketAddress(host, port));
-            sockChannel.configureBlocking(false);
-
-            ByteChannel channel = null;
-            if (protocol == Protocol.HTTPS) {
-               final SSLContext sslContext = (this.sslContext != null) ? this.sslContext : SSLContext.getDefault();
-               channel = ClientTlsChannel.newBuilder(sockChannel, sslContext).build();
-            }
-            else {
-               channel = sockChannel;
-            }
-
-            return channel;
+            return new SocketConnection(url, precision, autoFlushPeriod, threadFactory);
          }
          catch (final Exception e) {
             throw new RuntimeException(e);
          }
       }
 
-      private SocketConnection createConnection(final String url) {
-         try {
-            return new SocketConnection(url, createSocketChannel(), precision, autoFlushPeriod, threadFactory);
+      boolean validateConnection() throws IOException {
+         final URL url = createBaseURL("/query", "&q=" + URLEncoder.encode("SHOW DATABASES", "utf8"));
+         final HttpURLConnection httpConnection = (HttpURLConnection) url.openConnection();
+         httpConnection.setReadTimeout((int) SECONDS.toMillis(5));
+         httpConnection.setConnectTimeout((int) SECONDS.toMillis(5));
+         httpConnection.setRequestProperty("Host", InetAddress.getLocalHost().getHostName());
+
+         httpConnection.getContent();
+         final int status = httpConnection.getResponseCode();
+         if (status < 300) {
+            return true;
          }
-         catch (final Exception e) {
-            throw new RuntimeException(e);
+         else if (status == 401) {
+            return false;
          }
+         throw new IOException("Unexpected end-of-stream during connection validation");
       }
 
-      boolean validateConnection(final ByteChannel byteChannel) throws IOException {
-         try (final ByteChannel channel = byteChannel) {
-            final ByteBuffer buffer = ByteBuffer.allocate(512);
-            buffer.put(("GET " + protocol + "://" + host + ":" + port + "/query?" +
-                        "db=" + URLEncoder.encode(database, "utf8") +
-                        "&u=" + URLEncoder.encode(username, "utf8") +
-                        "&p=" + URLEncoder.encode(password, "utf8") +
-                        "&q=" + URLEncoder.encode("SHOW DATABASES", "utf8") +
-                        " HTTP/1.1\r\n"
-                     ).getBytes());
-            buffer.put("Connection: Keep-Alive\r\n".getBytes()).put("Host: ".getBytes()).put(InetAddress.getLocalHost().getHostName().getBytes()).put("\r\n\r\n".getBytes());
-
-            buffer.flip();
-            channel.write(buffer);
-            buffer.clear();
-
-            final String response = HttpElf.readResponse((SocketChannel) byteChannel, buffer);
-            if (response.startsWith("HTTP/1.1 2")) {
-               return true;
-            }
-            else if (response.startsWith("HTTP/1.1 401")) {
-               return false;
-            }
-            throw new IOException("Unexpected end-of-stream during connection validation");
-         }
-      }
-
-      private String createBaseURL() {
+      private URL createBaseURL(final String path, final String... queryParameters) {
          try {
-            String query = "db=" + URLEncoder.encode(database, "utf8")
-               + "&consistency=" + consistency
-               + "&precision=" + precision
-               + "&rp=" + URLEncoder.encode(retentionPolicy, "utf8");
-
+            String query = "db=" + URLEncoder.encode(database, "utf8");
             if (username != null) {
                query += "&u=" + URLEncoder.encode(username, "utf8");
             }
@@ -415,7 +364,11 @@ public class InfluxDB implements AutoCloseable {
                query += "&p=" + URLEncoder.encode(password, "utf8");
             }
 
-            return new URI(protocol.toString(), null, host, port, "/write", query, null).toASCIIString();
+            for (String parameter : queryParameters) {
+               query += parameter;
+            }
+
+            return new URI(protocol.toString(), null, host, port, path, query, null).toURL();
          }
          catch (final Exception e) {
             throw new RuntimeException(e);
@@ -428,29 +381,21 @@ public class InfluxDB implements AutoCloseable {
     * SocketConnection is used for HTTP/S protocol interactions.
     */
    private static class SocketConnection implements Runnable {
-      private final static int HTTP_HEADER_BUFFER_SIZE = 512;
       private final Semaphore shutdownSemaphore;
-      private final SocketChannel channel;
       private final Precision precision;
       private final MpscArrayQueue<Point> pointQueue;
-      private final ByteBuffer httpHeaders;
-      private final String url;
+      private final URL url;
       private final long autoFlushPeriod;
-      private final int contentLengthOffset;
       private volatile boolean shutdown;
 
-      SocketConnection(final String url,
-                             final ByteChannel channel,
+      SocketConnection(final URL url,
                              final Precision precision,
                              final long autoFlushPeriod,
                              final ThreadFactory threadFactory) throws IOException {
          this.url = url;
-         this.channel = (channel instanceof SocketChannel ? (SocketChannel) channel : (SocketChannel) ((TlsChannel) channel).getUnderlying());
          this.precision = precision;
          this.autoFlushPeriod = autoFlushPeriod;
          this.pointQueue = new MpscArrayQueue<>(64 * 1024);
-         this.httpHeaders = ByteBuffer.allocate(HTTP_HEADER_BUFFER_SIZE);
-         this.contentLengthOffset = setupHttpHeaderBuffer();
          this.shutdownSemaphore = new Semaphore(1);
          this.shutdownSemaphore.acquireUninterruptibly();
 
@@ -480,15 +425,10 @@ public class InfluxDB implements AutoCloseable {
 
       @Override
       public void run() {
-         final ByteBuffer buffer = ByteBuffer.allocate(SNDRCV_BUFFER_SIZE - HTTP_HEADER_BUFFER_SIZE);
+         final ByteBuffer buffer = ByteBuffer.allocate(SNDRCV_BUFFER_SIZE - 512);
          try {
             while (!shutdown) {
                final long startNs = nanoTime();
-
-               if (buffer.position() == 0) {
-                  httpHeaders.flip();
-                  buffer.put(httpHeaders);
-               }
 
                do {
                   final Point point = pointQueue.poll();
@@ -501,7 +441,7 @@ public class InfluxDB implements AutoCloseable {
                   }
                } while (buffer.remaining() > MAXIMUM_SERIALIZED_POINT_SIZE);
 
-               if (buffer.position() > httpHeaders.limit()) {
+               if (buffer.position() > 0) {
                   writeBuffers(buffer);
                   continue;
                }
@@ -516,16 +456,7 @@ public class InfluxDB implements AutoCloseable {
             e.printStackTrace();
          }
          finally {
-            try {
-               channel.close();
-            }
-            catch (IOException io) {
-               io.printStackTrace();
-               // ignored
-            }
-            finally {
-               shutdownSemaphore.release();
-            }
+            shutdownSemaphore.release();
          }
       }
 
@@ -533,56 +464,68 @@ public class InfluxDB implements AutoCloseable {
        * Setup the static HTTP POST header, and return the position in the buffer immediately
        * after the "Content-Length: " header.
        */
-      private int setupHttpHeaderBuffer() throws UnknownHostException {
-         final int offset = httpHeaders
-            .put(("POST " + url + " HTTP/1.1\r\n").getBytes())
-            .put(("Host: " + InetAddress.getLocalHost().getHostName() + "\r\n").getBytes())
-            .put("Content-Type: application/x-www-form-urlencoded\r\n".getBytes())
-            .put("Content-Length: ".getBytes())
-            .position();
+      // private int setupHttpHeaderBuffer() throws UnknownHostException {
+      //    final int offset = httpHeaders
+      //       .put(("POST " + url + " HTTP/1.1\r\n").getBytes())
+      //       .put(("Host: " + InetAddress.getLocalHost().getHostName() + "\r\n").getBytes())
+      //       .put("Content-Type: application/x-www-form-urlencoded\r\n".getBytes())
+      //       .put("Content-Length: ".getBytes())
+      //       .position();
 
-         httpHeaders.put("00000000\r\n\r\n".getBytes());
-         return offset;
-      }
+      //    httpHeaders.put("00000000\r\n\r\n".getBytes());
+      //    return offset;
+      // }
 
       private void writeBuffers(final ByteBuffer buffer) {
-         // Capture the end of buffer position
-         final int endOfBufferPosition = buffer.position();
-         // Set the position to just after the Content-Length header
-         buffer.position(contentLengthOffset);
-         // Write 8 zeroes for the size, plus the final CRLF+CRLF of the HTTP header
-         buffer.put("00000000\r\n\r\n".getBytes());
-         // Calculate the content length as the end-of-buffer position minus the HTTP header length
-         final int contentLength = endOfBufferPosition - buffer.position();
-         // Set the position such that the 8 zeros will be partially overwritten by the content length,
-         // resulting in a length with leading zeros, for example, 00000482.
-         buffer.position(contentLengthOffset + (8 - String.valueOf(contentLength).length()));
-         // Write the content length into the buffer (overwriting some of the zeros)
-         writeLongToBuffer(contentLength, buffer);
-         // Restore position to end of the buffer
-         buffer.position(endOfBufferPosition);
+         // // Capture the end of buffer position
+         // final int endOfBufferPosition = buffer.position();
+         // // Set the position to just after the Content-Length header
+         // buffer.position(contentLengthOffset);
+         // // Write 8 zeroes for the size, plus the final CRLF+CRLF of the HTTP header
+         // buffer.put("00000000\r\n\r\n".getBytes());
+         // // Calculate the content length as the end-of-buffer position minus the HTTP header length
+         // final int contentLength = endOfBufferPosition - buffer.position();
+         // // Set the position such that the 8 zeros will be partially overwritten by the content length,
+         // // resulting in a length with leading zeros, for example, 00000482.
+         // buffer.position(contentLengthOffset + (8 - String.valueOf(contentLength).length()));
+         // // Write the content length into the buffer (overwriting some of the zeros)
+         // writeLongToBuffer(contentLength, buffer);
+         // // Restore position to end of the buffer
+         // buffer.position(endOfBufferPosition);
 
+         final long startNs = System.nanoTime();
          try {
+            HttpURLConnection httpConnection = (HttpURLConnection) url.openConnection();
+
             buffer.flip();
-            while (channel.isConnected()) {
-               channel.write(buffer);
-               if (buffer.remaining() > 0) {
-                  LockSupport.parkNanos(10000L);
-                  continue;
+
+            httpConnection.setConnectTimeout((int) SECONDS.toMillis(5));
+            httpConnection.setRequestMethod("POST");
+            httpConnection.setRequestProperty("Host", InetAddress.getLocalHost().getHostName());
+            httpConnection.setFixedLengthStreamingMode(buffer.remaining());
+            httpConnection.setDoOutput(true);
+            httpConnection.connect();
+
+            try (final OutputStream os = httpConnection.getOutputStream()) {
+               os.write(buffer.array(), 0, buffer.remaining());
+            }
+            catch (IOException io) {
+               try (final DataInputStream err = new DataInputStream(httpConnection.getErrorStream())) {
+                  err.readFully(buffer.array());
                }
-
-               break;
+               throw io;
             }
-            buffer.clear();
 
-            final String response = HttpElf.readResponse(channel, buffer);
-            final int status = Integer.valueOf(response.substring(9, 13).trim());
-            if (status == 401) {
-               // re-authenticate?
-            }
-            else if (status > 399) {
-               // unexpected response
-               throw new RuntimeException("Unexpected HTTP response status: " + status);
+            try (final InputStream is = httpConnection.getInputStream()) {
+               final Object response = httpConnection.getContent();
+               final int status = httpConnection.getResponseCode();
+               if (status == 401) {
+                  // re-authenticate?
+               }
+               else if (status > 399) {
+                  // unexpected response
+                  throw new RuntimeException("Unexpected HTTP response status: " + status);
+               }
             }
          }
          catch (final IOException io) {
@@ -591,6 +534,7 @@ public class InfluxDB implements AutoCloseable {
          }
          finally {
             buffer.clear();
+            System.out.println("Time " + (TimeUnit.NANOSECONDS.toMicros(System.nanoTime() - startNs)) + "us");
          }
       }
    }
