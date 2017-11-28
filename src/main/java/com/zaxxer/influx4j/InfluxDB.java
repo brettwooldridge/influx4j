@@ -26,6 +26,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.InetAddress;
+import java.net.Socket;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLEncoder;
@@ -105,7 +106,7 @@ public class InfluxDB implements AutoCloseable {
    }
 
 
-   private static final int SNDRCV_BUFFER_SIZE = Integer.getInteger("com.zaxxer.influx4j.sndrcvBufferSize", 1024 * 1024);
+   private static final int SEND_BUFFER_SIZE;
    private static final int MAXIMUM_SERIALIZED_POINT_SIZE = Integer.getInteger("com.zaxxer.influx4j.maxSerializedPointSize", 32 * 1024);
 
    private static final ConcurrentHashMap<URL, SocketConnection> CONNECTIONS = new ConcurrentHashMap<>();
@@ -116,6 +117,21 @@ public class InfluxDB implements AutoCloseable {
    private final String password;
    private final int port;
    private final Protocol protocol;
+
+   static {
+      int sendBuffSize = Integer.getInteger("com.zaxxer.influx4j.sndrcvBufferSize", 0);
+      try (final Socket tmpSocket = new Socket()) {
+         if (sendBuffSize == 0) {
+            sendBuffSize = tmpSocket.getSendBufferSize();
+         }
+      }
+      catch (final IOException ioe) {
+         // nothing
+      }
+      finally {
+         SEND_BUFFER_SIZE = sendBuffSize;
+      }
+   }
 
    private InfluxDB(final SocketConnection connection,
                     final String host,
@@ -302,16 +318,16 @@ public class InfluxDB implements AutoCloseable {
 
                   connection = CONNECTIONS.computeIfAbsent(
                      createBaseURL("/write",
-                                   "&consistency=" + consistency,
-                                   "&precision=" + precision,
-                                   "&rp=" + URLEncoder.encode(retentionPolicy, "utf8")),
+                                   "consistency=" + consistency,
+                                   "precision=" + precision,
+                                   "rp=" + URLEncoder.encode(retentionPolicy, "utf8")),
                                    this::createConnection);
                   break;
                }
                case UDP: {
                   // final DatagramChannel datagramChannel = DatagramChannel.open();
-                  // datagramChannel.setOption(StandardSocketOptions.SO_SNDBUF, SNDRCV_BUFFER_SIZE);
-                  // datagramChannel.setOption(StandardSocketOptions.SO_RCVBUF, SNDRCV_BUFFER_SIZE);
+                  // datagramChannel.setOption(StandardSocketOptions.SO_SNDBUF, SEND_BUFFER_SIZE);
+                  // datagramChannel.setOption(StandardSocketOptions.SO_RCVBUF, SEND_BUFFER_SIZE);
                   // datagramChannel.connect(InetSocketAddress.createUnresolved(host, port));
                   //connection = new SocketConnection(null, datagramChannel, autoFlushPeriod, threadFactory);
                   break;
@@ -337,7 +353,7 @@ public class InfluxDB implements AutoCloseable {
       }
 
       boolean validateConnection() throws IOException {
-         final URL url = createBaseURL("/query", "&q=" + URLEncoder.encode("SHOW DATABASES", "utf8"));
+         final URL url = createBaseURL("/query", "q=" + URLEncoder.encode("SHOW DATABASES", "utf8"));
          final HttpURLConnection httpConnection = (HttpURLConnection) url.openConnection();
          httpConnection.setReadTimeout((int) SECONDS.toMillis(5));
          httpConnection.setConnectTimeout((int) SECONDS.toMillis(5));
@@ -356,17 +372,12 @@ public class InfluxDB implements AutoCloseable {
 
       private URL createBaseURL(final String path, final String... queryParameters) {
          try {
-            String query = "db=" + URLEncoder.encode(database, "utf8");
-            if (username != null) {
-               query += "&u=" + URLEncoder.encode(username, "utf8");
-            }
-            if (password != null) {
-               query += "&p=" + URLEncoder.encode(password, "utf8");
-            }
+            String query =
+               "db=" + URLEncoder.encode(database, "utf8") +
+               "&u=" + (username != null ? URLEncoder.encode(username, "utf8") : "") +
+               "&p=" + (password != null ? URLEncoder.encode(password, "utf8") : "");
 
-            for (String parameter : queryParameters) {
-               query += parameter;
-            }
+            query = query + "&" + String.join("&", queryParameters);
 
             return new URI(protocol.toString(), null, host, port, path, query, null).toURL();
          }
@@ -425,7 +436,7 @@ public class InfluxDB implements AutoCloseable {
 
       @Override
       public void run() {
-         final ByteBuffer buffer = ByteBuffer.allocate(SNDRCV_BUFFER_SIZE - 512);
+         final ByteBuffer buffer = ByteBuffer.allocate(SEND_BUFFER_SIZE - 512);
          try {
             while (!shutdown) {
                final long startNs = nanoTime();
@@ -439,11 +450,15 @@ public class InfluxDB implements AutoCloseable {
                   finally {
                      point.release();
                   }
-               } while (buffer.remaining() > MAXIMUM_SERIALIZED_POINT_SIZE);
+               } while (buffer.remaining() >= MAXIMUM_SERIALIZED_POINT_SIZE);
 
                if (buffer.position() > 0) {
+                  final boolean again = buffer.remaining() < MAXIMUM_SERIALIZED_POINT_SIZE;
                   writeBuffers(buffer);
-                  continue;
+                  if (again) {
+                     // skip parking below, we still have more points to process but just ran out of buffer
+                     continue;
+                  }
                }
 
                final long parkNs = autoFlushPeriod - (nanoTime() - startNs);
