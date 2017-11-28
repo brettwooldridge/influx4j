@@ -24,7 +24,6 @@ import com.zaxxer.influx4j.util.PrimitiveArraySort;
 
 import static com.zaxxer.influx4j.util.FastValue2Buffer.writeDoubleToBuffer;
 import static com.zaxxer.influx4j.util.FastValue2Buffer.writeLongToBuffer;
-import static com.zaxxer.influx4j.util.Utf8.containsUnicode;
 
 /**
  * @author brett.wooldridge at gmail.com
@@ -52,7 +51,6 @@ public class Point {
    private final PointFactory parentFactory;
 
    private int tagIndex;
-   private int tagMark;
 
    private int longFieldIndex;
    private int doubleFieldIndex;
@@ -111,16 +109,6 @@ public class Point {
    public Point timestamp(final long timestamp, final TimeUnit timeUnit) {
       this.timestamp = timestamp;
       this.timeUnit = timeUnit;
-      return this;
-   }
-
-   public Point mark() {
-      tagMark = tagIndex;
-      return this;
-   }
-
-   public Point rewind() {
-      tagIndex = tagMark;
       return this;
    }
 
@@ -187,7 +175,6 @@ public class Point {
          stringFields[i].reset();
       }
 
-      tagMark = 0;
       tagIndex = 0;
       longFieldIndex = 0;
       stringFieldIndex = 0;

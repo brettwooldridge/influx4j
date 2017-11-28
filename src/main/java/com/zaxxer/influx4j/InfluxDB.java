@@ -460,40 +460,8 @@ public class InfluxDB implements AutoCloseable {
          }
       }
 
-      /**
-       * Setup the static HTTP POST header, and return the position in the buffer immediately
-       * after the "Content-Length: " header.
-       */
-      // private int setupHttpHeaderBuffer() throws UnknownHostException {
-      //    final int offset = httpHeaders
-      //       .put(("POST " + url + " HTTP/1.1\r\n").getBytes())
-      //       .put(("Host: " + InetAddress.getLocalHost().getHostName() + "\r\n").getBytes())
-      //       .put("Content-Type: application/x-www-form-urlencoded\r\n".getBytes())
-      //       .put("Content-Length: ".getBytes())
-      //       .position();
-
-      //    httpHeaders.put("00000000\r\n\r\n".getBytes());
-      //    return offset;
-      // }
-
       private void writeBuffers(final ByteBuffer buffer) {
-         // // Capture the end of buffer position
-         // final int endOfBufferPosition = buffer.position();
-         // // Set the position to just after the Content-Length header
-         // buffer.position(contentLengthOffset);
-         // // Write 8 zeroes for the size, plus the final CRLF+CRLF of the HTTP header
-         // buffer.put("00000000\r\n\r\n".getBytes());
-         // // Calculate the content length as the end-of-buffer position minus the HTTP header length
-         // final int contentLength = endOfBufferPosition - buffer.position();
-         // // Set the position such that the 8 zeros will be partially overwritten by the content length,
-         // // resulting in a length with leading zeros, for example, 00000482.
-         // buffer.position(contentLengthOffset + (8 - String.valueOf(contentLength).length()));
-         // // Write the content length into the buffer (overwriting some of the zeros)
-         // writeLongToBuffer(contentLength, buffer);
-         // // Restore position to end of the buffer
-         // buffer.position(endOfBufferPosition);
-
-         final long startNs = System.nanoTime();
+         // long startNs = System.nanoTime();
          try {
             HttpURLConnection httpConnection = (HttpURLConnection) url.openConnection();
 
@@ -516,9 +484,15 @@ public class InfluxDB implements AutoCloseable {
                throw io;
             }
 
+            // System.out.println(url.getPath() + " - write took " + (TimeUnit.NANOSECONDS.toMicros(System.nanoTime() - startNs)) + "us");
+            // startNs = System.nanoTime();
+
             try (final InputStream is = httpConnection.getInputStream()) {
-               final Object response = httpConnection.getContent();
                final int status = httpConnection.getResponseCode();
+               if (status == 204) {
+                  // no content
+                  return;
+               }
                if (status == 401) {
                   // re-authenticate?
                }
@@ -526,6 +500,15 @@ public class InfluxDB implements AutoCloseable {
                   // unexpected response
                   throw new RuntimeException("Unexpected HTTP response status: " + status);
                }
+
+               // consume response
+               httpConnection.getContent();
+            }
+            catch (IOException io) {
+               try (final DataInputStream err = new DataInputStream(httpConnection.getErrorStream())) {
+                  err.readFully(buffer.array());
+               }
+               throw io;
             }
          }
          catch (final IOException io) {
@@ -534,7 +517,7 @@ public class InfluxDB implements AutoCloseable {
          }
          finally {
             buffer.clear();
-            System.out.println("Time " + (TimeUnit.NANOSECONDS.toMicros(System.nanoTime() - startNs)) + "us");
+            // System.out.println(url.getPath() + " - read took " + (TimeUnit.NANOSECONDS.toMicros(System.nanoTime() - startNs)) + "us");
          }
       }
    }

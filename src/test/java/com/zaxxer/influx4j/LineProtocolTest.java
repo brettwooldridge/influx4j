@@ -295,46 +295,6 @@ public class LineProtocolTest {
       }
    }
 
-   // @Test
-   public void testPointMarkRewind() throws IOException {
-      final ByteBuffer buffer = ByteBuffer.allocate(128);
-
-      final long timestamp = timestampNs();
-      final Point point = pointFactory.createPoint("testMeasurement")
-         .tag("table", "3")
-         .tag("apple", "1")
-         .field("boolean", true)
-         .mark()
-         .tag("mouse", "2")
-         .field("double", 123456789.1234)
-         .timestamp(timestamp, TimeUnit.NANOSECONDS);
-
-      point.write(buffer, Precision.NANOSECOND);
-
-      Assert.assertEquals(tsString("testMeasurement,apple=1,mouse=2,table=3 boolean=t,double=123456789.1234", timestamp), buffer2string(buffer));
-
-      buffer.clear();
-
-      point.rewind()
-         .tag("zebra", "4")
-         .field("double", 987654321.9876)
-         .write(buffer, Precision.NANOSECOND);
-
-      Assert.assertEquals(tsString("testMeasurement,apple=1,table=3,zebra=4 boolean=t,double=987654321.9876", timestamp), buffer2string(buffer));
-
-      buffer.clear();
-
-      point.rewind()
-         .measurement("testMeasurement2")
-         .tag("zebra", "4")
-         .field("double", 12121212.1212)
-         .write(buffer, Precision.NANOSECOND);
-
-      Assert.assertEquals(tsString("testMeasurement2,apple=1,table=3,zebra=4 boolean=t,double=12121212.1212", timestamp), buffer2string(buffer));
-
-      point.release();
-   }
-
    private String buffer2string(final ByteBuffer buffer) {
       return new String(buffer.array(), 0, buffer.position());
    }
