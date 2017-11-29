@@ -117,6 +117,55 @@ public class Point {
       return this;
    }
 
+   public String measurement() {
+      return measurement;
+   }
+
+   public Long longField(final String field) {
+      for (int i = 0; i < longFieldIndex; i++) {
+         if (field.equals(longFields[i].name)) {
+            return longFields[i].value;
+         }
+      }
+      return null;
+   }
+
+   public Double doubleField(final String field) {
+      for (int i = 0; i < doubleFieldIndex; i++) {
+         if (field.equals(doubleFields[i].name)) {
+            return doubleFields[i].value;
+         }
+      }
+      return null;
+   }
+
+   public Boolean booleanField(final String field) {
+      for (int i = 0; i < booleanFieldIndex; i++) {
+         if (field.equals(boolFields[i].name)) {
+            return boolFields[i].value;
+         }
+      }
+      return null;
+   }
+
+   public String stringField(final String field) {
+      for (int i = 0; i < stringFieldIndex; i++) {
+         if (field.equals(stringFields[i].name)) {
+            return stringFields[i].value;
+         }
+      }
+      return null;
+   }
+
+   public String tag(final String tag) {
+      for (int i = 0; i < tagIndex; i++) {
+         if (tag.equals(tags[i].name)) {
+            return tags[i].value;
+         }
+      }
+      return null;
+   }
+
    void write(final ByteBuffer buffer, final Precision precision) {
       final int fieldCount = longFieldIndex + booleanFieldIndex + stringFieldIndex + doubleFieldIndex;
 
