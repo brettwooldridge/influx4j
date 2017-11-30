@@ -264,10 +264,10 @@ final class FastDtoa {
       return ((long) power << 32) | (0xffffffffL & exponent);
    }
 
-   private static boolean uint64_lte(final long a, final long b) {
-      // less-or-equal for unsigned int64 in java-style...
-      return (a == b) || ((a < b) ^ (a < 0) ^ (b < 0));
-   }
+   // private static boolean uint64_lte(final long a, final long b) {
+   //   // less-or-equal for unsigned int64 in java-style...
+   //   return (a == b) || ((a < b) ^ (a < 0) ^ (b < 0));
+   //}
 
    // Generates the digits of input number w.
    // w is a floating-point number (DiyFp), consisting of a significand and an

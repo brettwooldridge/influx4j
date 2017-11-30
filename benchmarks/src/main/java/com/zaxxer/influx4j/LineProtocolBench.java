@@ -12,6 +12,8 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
 
+import com.zaxxer.influx4j.InfluxDB.Precision;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -73,9 +75,9 @@ public class LineProtocolBench {
                  .field("string", "This is a string")
                  .timestamp();
 
-         point.write(buffer);
+         point.write(buffer, Precision.MILLISECOND);
          buffer.clear();
-         point.release();
+         point.close();
 
         return buffer;
       }

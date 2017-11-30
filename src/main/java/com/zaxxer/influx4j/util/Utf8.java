@@ -18,8 +18,6 @@ package com.zaxxer.influx4j.util;
 import static java.lang.Character.MAX_SURROGATE;
 import static java.lang.Character.MIN_SURROGATE;
 
-import java.lang.reflect.Method;
-
 public class Utf8 {
    public static boolean containsUnicode(final String string) {
       for (int i = 0; i < string.length(); i++) {

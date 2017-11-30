@@ -79,7 +79,6 @@ public class PrimitiveArraySort {
       }
    }
 
-   @SuppressWarnings("StatementWithEmptyBody")
    private static int countRun(final int[] array, final int hi, final IntComparator c) {
       if (hi == 1) return 1;
 

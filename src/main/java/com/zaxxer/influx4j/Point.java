@@ -18,6 +18,7 @@ package com.zaxxer.influx4j;
 
 import java.nio.ByteBuffer;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.zaxxer.influx4j.InfluxDB.Precision;
 import com.zaxxer.influx4j.util.PrimitiveArraySort;
@@ -28,12 +29,12 @@ import static com.zaxxer.influx4j.util.FastValue2Buffer.writeLongToBuffer;
 /**
  * @author brett.wooldridge at gmail.com
  */
-@SuppressWarnings("ALL")
-public class Point {
+public class Point implements AutoCloseable {
    private final static int MAX_TAG_COUNT = Integer.getInteger("com.zaxxer.influx4j.maxTagCount", 64);
    private final static int MAX_FIELD_COUNT = Integer.getInteger("com.zaxxer.influx4j.maxTagCount", 64);
 
    private final ParallelTagArrayComparator tagKeyComparator;
+   private final AtomicInteger retentionCount;
 
    private final StringPair[] tags;
    private final int[] tagSort;
@@ -61,6 +62,7 @@ public class Point {
       this.parentFactory = parentFactory;
       this.tags = new StringPair[MAX_TAG_COUNT];
       this.tagSort = new int[MAX_TAG_COUNT];
+      this.retentionCount = new AtomicInteger(1);
       this.tagKeyComparator = new ParallelTagArrayComparator(tags);
 
       this.longFields = new LongPair[MAX_FIELD_COUNT];
@@ -166,6 +168,21 @@ public class Point {
       return null;
    }
 
+   public void retain() {
+      retentionCount.incrementAndGet();
+   }
+
+   @Override
+   public void close() {
+      final int refs = retentionCount.decrementAndGet();
+      if (refs == 0) {
+         release();
+      }
+      else if (refs < 1) {
+         throw new IllegalStateException("Unbalanced number of close() calls\n" + this);
+      }
+   }
+
    void write(final ByteBuffer buffer, final Precision precision) {
       final int fieldCount = longFieldIndex + booleanFieldIndex + stringFieldIndex + doubleFieldIndex;
 
@@ -212,7 +229,7 @@ public class Point {
       buffer.put((byte) '\n');
    }
 
-   void release() {
+   private void release() {
       // Reset important point state (and bits necessary to aid garbage collection)
       final int tagCount = tagIndex;
       for (int i = 0; i < tagCount; i++) {
@@ -230,6 +247,7 @@ public class Point {
       doubleFieldIndex = 0;
       booleanFieldIndex = 0;
       timestamp = 0;
+      retentionCount.set(1);
       firstFieldWritten = false;
 
       parentFactory.returnPoint(this);

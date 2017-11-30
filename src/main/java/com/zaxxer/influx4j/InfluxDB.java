@@ -442,13 +442,10 @@ public class InfluxDB implements AutoCloseable {
                final long startNs = nanoTime();
 
                do {
-                  final Point point = pointQueue.poll();
-                  if (point == null) break;
-                  try {
+                  try (final Point point = pointQueue.poll()) {
+                     if (point == null) break;
+
                      point.write(buffer, precision);
-                  }
-                  finally {
-                     point.release();
                   }
                } while (buffer.remaining() >= MAXIMUM_SERIALIZED_POINT_SIZE);
 

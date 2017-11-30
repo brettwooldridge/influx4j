@@ -30,8 +30,6 @@
 
 package com.zaxxer.influx4j.util.fastdouble;
 
-import java.util.concurrent.atomic.LongAdder;
-
 // This "Do It Yourself Floating Point" class implements a floating-point number
 // with a uint64 significand and an int exponent. Normalized DiyFp numbers will
 // have the most significant bit of the significand set.

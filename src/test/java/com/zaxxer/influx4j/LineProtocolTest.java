@@ -37,7 +37,7 @@ public class LineProtocolTest {
 
    @Before
    public void createFactory() {
-      pointFactory = PointFactory.builder().build();
+      pointFactory = PointFactory.builder().size(1).build();
    }
 
    @After
@@ -194,7 +194,7 @@ public class LineProtocolTest {
 
       Assert.assertEquals("testMeasurement boolean=t " + TimeUnit.MILLISECONDS.toNanos(timestamp1) + "\n", buffer2string(buffer));
 
-      point1.release();
+      point1.close();
       buffer.clear();
 
       final long timestamp2 = TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis());
@@ -206,7 +206,7 @@ public class LineProtocolTest {
 
       Assert.assertEquals("testMeasurement boolean=t " + TimeUnit.SECONDS.toMicros(timestamp2) + "\n", buffer2string(buffer));
 
-      point2.release();
+      point2.close();
    }
 
    @Test
@@ -260,7 +260,7 @@ public class LineProtocolTest {
       final ByteBuffer buffer = ByteBuffer.allocate(128);
 
       final PointFactory factory = PointFactory.builder()
-              .setSize(1)
+              .size(1)
               .build();
       try {
          final long timestamp = timestampNs();
@@ -274,7 +274,7 @@ public class LineProtocolTest {
          point1.write(buffer, Precision.NANOSECOND);
          Assert.assertEquals(tsString("testMeasurement,apple=1,mouse=2,zebra=3 boolean=t", timestamp), buffer2string(buffer));
 
-         point1.release();
+         point1.close();
          buffer.clear();
 
          Point point2 = factory.createPoint("testMeasurement2")
@@ -286,7 +286,7 @@ public class LineProtocolTest {
          Assert.assertEquals(identityHashCode(point1), identityHashCode(point2));
 
          point2.write(buffer, Precision.NANOSECOND);
-         point2.release();
+         point2.close();
 
          Assert.assertEquals(tsString("testMeasurement2,chocolate=1,strawberry=2 boolean=f", timestamp), buffer2string(buffer));
       }

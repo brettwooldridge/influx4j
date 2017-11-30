@@ -21,7 +21,6 @@ import com.zaxxer.influx4j.util.FAAArrayQueue;
  /**
  * @author brett.wooldridge at gmail.com
  */
-@SuppressWarnings("WeakerAccess")
 public class PointFactory {
    private final FAAArrayQueue<Point> pointPool;
 
@@ -66,7 +65,7 @@ public class PointFactory {
       private Builder() {
       }
 
-      public Builder setSize(final int size) {
+      public Builder size(final int size) {
          this.size = size;
          return this;
       }
