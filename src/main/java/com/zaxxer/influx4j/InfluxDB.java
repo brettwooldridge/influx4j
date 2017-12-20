@@ -392,6 +392,7 @@ public class InfluxDB implements AutoCloseable {
     * SocketConnection is used for HTTP/S protocol interactions.
     */
    private static class SocketConnection implements Runnable {
+      private final String localhost = InetAddress.getLocalHost().getHostName();
       private final Semaphore shutdownSemaphore;
       private final Precision precision;
       private final MpscArrayQueue<Point> pointQueue;
@@ -481,7 +482,7 @@ public class InfluxDB implements AutoCloseable {
 
             httpConnection.setConnectTimeout((int) SECONDS.toMillis(5));
             httpConnection.setRequestMethod("POST");
-            httpConnection.setRequestProperty("Host", InetAddress.getLocalHost().getHostName());
+            httpConnection.setRequestProperty("Host", localhost);
             httpConnection.setFixedLengthStreamingMode(buffer.remaining());
             httpConnection.setDoOutput(true);
             httpConnection.connect();
