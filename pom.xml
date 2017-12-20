@@ -48,9 +48,9 @@
 
    <dependencies>
       <dependency>
-         <groupId>com.github.marianobarrios</groupId>
-         <artifactId>tls-channel</artifactId>
-         <version>0.1.0</version>
+         <groupId>com.squareup.okhttp3</groupId>
+         <artifactId>okhttp</artifactId>
+         <version>3.9.1</version>
       </dependency>
       <dependency>
          <groupId>org.jctools</groupId>

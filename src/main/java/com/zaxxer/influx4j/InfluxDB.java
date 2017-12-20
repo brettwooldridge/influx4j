@@ -20,10 +20,8 @@ import static java.lang.System.nanoTime;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
-import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.InetAddress;
 import java.net.Socket;
@@ -38,6 +36,14 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
 
 import com.zaxxer.influx4j.util.DaemonThreadFactory;
+
+import okhttp3.Call;
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
+import okio.BufferedSink;
 
 import org.jctools.queues.MpscArrayQueue;
 
@@ -392,6 +398,9 @@ public class InfluxDB implements AutoCloseable {
     * SocketConnection is used for HTTP/S protocol interactions.
     */
    private static class SocketConnection implements Runnable {
+      private static final MediaType MEDIA_TYPE_TEXT = MediaType.parse("text/plain; charset=utf-8");
+
+      private final OkHttpClient client;
       private final String localhost = InetAddress.getLocalHost().getHostName();
       private final Semaphore shutdownSemaphore;
       private final Precision precision;
@@ -410,6 +419,7 @@ public class InfluxDB implements AutoCloseable {
          this.pointQueue = new MpscArrayQueue<>(64 * 1024);
          this.shutdownSemaphore = new Semaphore(1);
          this.shutdownSemaphore.acquireUninterruptibly();
+         this.client = new OkHttpClient();
 
          final Thread flusher = threadFactory.newThread(this);
          flusher.setDaemon(true);
@@ -438,6 +448,30 @@ public class InfluxDB implements AutoCloseable {
       @Override
       public void run() {
          final ByteBuffer buffer = ByteBuffer.allocate(SEND_BUFFER_SIZE - 512);
+
+         final RequestBody requestBody = new RequestBody() {
+            @Override public MediaType contentType() {
+               return MEDIA_TYPE_TEXT;
+             }
+
+            @Override public void writeTo(BufferedSink sink) throws IOException {
+               try {
+                  buffer.flip();
+                  sink.write(buffer.array(), 0, buffer.remaining());
+               }
+               finally {
+                  buffer.clear();
+               }
+            }
+         };
+
+         final Request request = new Request.Builder()
+            .url(url)
+            .post(requestBody)
+            .build();
+
+         final Call httpCall = client.newCall(request);
+
          try {
             while (!shutdown) {
                final long startNs = nanoTime();
@@ -452,7 +486,7 @@ public class InfluxDB implements AutoCloseable {
 
                if (buffer.position() > 0) {
                   final boolean again = buffer.remaining() < MAXIMUM_SERIALIZED_POINT_SIZE;
-                  writeBuffers(buffer);
+                  writeBuffers(httpCall);
                   if (again) {
                      // skip parking below, we still have more points to process but just ran out of buffer
                      continue;
@@ -473,64 +507,16 @@ public class InfluxDB implements AutoCloseable {
          }
       }
 
-      private void writeBuffers(final ByteBuffer buffer) {
-         // long startNs = System.nanoTime();
-         try {
-            HttpURLConnection httpConnection = (HttpURLConnection) url.openConnection();
-
-            buffer.flip();
-
-            httpConnection.setConnectTimeout((int) SECONDS.toMillis(5));
-            httpConnection.setRequestMethod("POST");
-            httpConnection.setRequestProperty("Host", localhost);
-            httpConnection.setFixedLengthStreamingMode(buffer.remaining());
-            httpConnection.setDoOutput(true);
-            httpConnection.connect();
-
-            try (final OutputStream os = httpConnection.getOutputStream()) {
-               os.write(buffer.array(), 0, buffer.remaining());
-            }
-            catch (IOException io) {
-               try (final DataInputStream err = new DataInputStream(httpConnection.getErrorStream())) {
-                  err.readFully(buffer.array());
-               }
-               throw io;
-            }
-
-            // System.out.println(url.getPath() + " - write took " + (TimeUnit.NANOSECONDS.toMicros(System.nanoTime() - startNs)) + "us");
-            // startNs = System.nanoTime();
-
-            try (final InputStream is = httpConnection.getInputStream()) {
-               final int status = httpConnection.getResponseCode();
-               if (status == 204) {
-                  // no content
-                  return;
-               }
-               if (status == 401) {
-                  // re-authenticate?
-               }
-               else if (status > 399) {
-                  // unexpected response
-                  throw new RuntimeException("Unexpected HTTP response status: " + status);
-               }
-
-               // consume response
-               httpConnection.getContent();
-            }
-            catch (IOException io) {
-               try (final DataInputStream err = new DataInputStream(httpConnection.getErrorStream())) {
-                  err.readFully(buffer.array());
-               }
-               throw io;
+      private void writeBuffers(final Call httpCall) {
+         final Call call = httpCall.clone();
+         try (Response response = call.execute()) {
+            if (!response.isSuccessful()) {
+               // TODO: What? Log? Pretty spammy...
             }
          }
          catch (final IOException io) {
             // TODO: What? Log? Pretty spammy...
             io.printStackTrace();
-         }
-         finally {
-            buffer.clear();
-            // System.out.println(url.getPath() + " - read took " + (TimeUnit.NANOSECONDS.toMicros(System.nanoTime() - startNs)) + "us");
          }
       }
    }
