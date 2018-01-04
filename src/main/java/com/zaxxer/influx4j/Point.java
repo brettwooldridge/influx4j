@@ -125,7 +125,10 @@ public class Point implements AutoCloseable {
 
    public Long longField(final String field) {
       for (int i = 0; i < longFieldIndex; i++) {
-         if (field.equals(longFields[i].name)) {
+         if (longFields[i].name == null) {
+            break;
+         }
+         else if (field.equals(longFields[i].name)) {
             return longFields[i].value;
          }
       }
@@ -134,7 +137,10 @@ public class Point implements AutoCloseable {
 
    public Double doubleField(final String field) {
       for (int i = 0; i < doubleFieldIndex; i++) {
-         if (field.equals(doubleFields[i].name)) {
+         if (doubleFields[i].name == null) {
+            break;
+         }
+         else if (field.equals(doubleFields[i].name)) {
             return doubleFields[i].value;
          }
       }
@@ -143,7 +149,10 @@ public class Point implements AutoCloseable {
 
    public Boolean booleanField(final String field) {
       for (int i = 0; i < booleanFieldIndex; i++) {
-         if (field.equals(boolFields[i].name)) {
+         if (boolFields[i].name == null) {
+            break;
+         }
+         else if (field.equals(boolFields[i].name)) {
             return boolFields[i].value;
          }
       }
@@ -152,7 +161,10 @@ public class Point implements AutoCloseable {
 
    public String stringField(final String field) {
       for (int i = 0; i < stringFieldIndex; i++) {
-         if (field.equals(stringFields[i].name)) {
+         if (stringFields[i].name == null) {
+            break;
+         }
+         else if (field.equals(stringFields[i].name)) {
             return stringFields[i].value;
          }
       }
