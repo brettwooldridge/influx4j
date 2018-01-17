@@ -203,7 +203,7 @@ public class InfluxDB implements AutoCloseable {
             + "&p=" + URLEncoder.encode(password, "utf8")
             + "&q=create+database+" + URLEncoder.encode(name, "utf8");
 
-            final URI uri = new URI(protocol.toString(), null, host, port, "/query", query, null);
+            final URI uri = new URI(protocol.toString(), null, URLEncoder.encode(host, "utf8"), port, "/query", query, null);
             final HttpURLConnection httpConnection = (HttpURLConnection) uri.toURL().openConnection();
             httpConnection.setConnectTimeout((int) SECONDS.toMillis(5));
             httpConnection.setRequestMethod("POST");
@@ -385,7 +385,7 @@ public class InfluxDB implements AutoCloseable {
 
             query = query + "&" + String.join("&", queryParameters);
 
-            return new URI(protocol.toString(), null, host, port, path, query, null).toURL();
+            return new URI(protocol.toString(), null, URLEncoder.encode(host, "utf8"), port, path, query, null).toURL();
          }
          catch (final Exception e) {
             throw new RuntimeException(e);
