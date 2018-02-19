@@ -33,6 +33,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
+import java.util.logging.Logger;
 
 import com.zaxxer.influx4j.util.DaemonThreadFactory;
 
@@ -51,6 +52,8 @@ import org.jctools.queues.MpscArrayQueue;
  * @author brett.wooldridge at gmail.com
  */
 public class InfluxDB implements AutoCloseable {
+
+   private static final Logger LOGGER = Logger.getLogger(InfluxDB.class.getName());
 
    /*****************************************************************************************
     * InfluxDB wire protocols.
@@ -427,7 +430,8 @@ public class InfluxDB implements AutoCloseable {
 
       void write(final Point point) {
          if (!pointQueue.offer(point)) {
-            throw new RuntimeException(System.currentTimeMillis() + " Point queue overflow.  Exceeded capacity of " + pointQueue.capacity() + ".");
+            final String msg = String.format("Point queue overflow.  Exceeded capacity of %d, point was dropped.", pointQueue.capacity());
+            LOGGER.fine(() -> msg);
          }
       }
 
