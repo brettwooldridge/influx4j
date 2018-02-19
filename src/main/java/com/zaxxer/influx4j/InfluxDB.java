@@ -33,6 +33,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.zaxxer.influx4j.util.DaemonThreadFactory;
@@ -412,9 +413,9 @@ public class InfluxDB implements AutoCloseable {
       private volatile boolean shutdown;
 
       SocketConnection(final URL url,
-                             final Precision precision,
-                             final long autoFlushPeriod,
-                             final ThreadFactory threadFactory) throws IOException {
+                       final Precision precision,
+                       final long autoFlushPeriod,
+                       final ThreadFactory threadFactory) throws IOException {
          this.url = url;
          this.precision = precision;
          this.autoFlushPeriod = autoFlushPeriod;
@@ -430,8 +431,7 @@ public class InfluxDB implements AutoCloseable {
 
       void write(final Point point) {
          if (!pointQueue.offer(point)) {
-            final String msg = String.format("Point queue overflow.  Exceeded capacity of %d, point was dropped.", pointQueue.capacity());
-            LOGGER.fine(() -> msg);
+            LOGGER.log(Level.FINE, "Point queue overflow.  Exceeded capacity of {}, point was dropped.", pointQueue.capacity());
          }
       }
 
@@ -503,7 +503,7 @@ public class InfluxDB implements AutoCloseable {
             }
          }
          catch (final Exception e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Unexpected exception", e);
          }
          finally {
             shutdownSemaphore.release();
