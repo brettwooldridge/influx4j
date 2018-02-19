@@ -17,12 +17,14 @@
 package com.zaxxer.influx4j;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.zaxxer.influx4j.InfluxDB.Precision;
 import com.zaxxer.influx4j.util.PrimitiveArraySort;
 
+import static com.zaxxer.influx4j.InfluxDB.MAXIMUM_SERIALIZED_POINT_SIZE;
 import static com.zaxxer.influx4j.util.FastValue2Buffer.writeDoubleToBuffer;
 import static com.zaxxer.influx4j.util.FastValue2Buffer.writeLongToBuffer;
 
@@ -181,6 +183,13 @@ public class Point implements AutoCloseable {
       else if (refs < 1) {
          throw new IllegalStateException("Unbalanced number of close() calls\n" + this);
       }
+   }
+
+   @Override
+   public String toString() {
+      final ByteBuffer buf = ByteBuffer.allocate(MAXIMUM_SERIALIZED_POINT_SIZE);
+      write(buf, Precision.MILLISECOND);
+      return StandardCharsets.UTF_8.decode(buf).toString();
    }
 
    void write(final ByteBuffer buffer, final Precision precision) {
