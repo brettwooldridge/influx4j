@@ -9,7 +9,7 @@ InfluxDB is a high-performance time-series database.  You need a Java driver to 
 
 When jamming tens-of-thousands of metrics into InfluxDB *per minute*, you can't afford Stop-The-World garbage collection times reaching into the hundreds (or thousands) of milliseconds.  And you can't afford to senselessly burn CPU cycles.
 
-### *10x* Faster.&nbsp;&nbsp;*25x* Less CPU.&nbsp;&nbsp;*Infinity* Less Garbage.
+### *10x* Faster.&nbsp;&nbsp;*10x* Less CPU.&nbsp;&nbsp;*Infinity* Less Garbage.
 
 *influx4j is wickedly fast.* 10 times faster than the offical driver.  *influx4j is a CPU miser.*  10 times less CPU consumption persisting a datapoint than the official driver.  *influx4j generates ZERO garbage from Point to Protocol.*  Infinitely less garbage than the official driver.
 
