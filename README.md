@@ -1,5 +1,7 @@
 [![][Build Status img]][Build Status]
 [![][license img]][license]
+[![][Maven Central img]][Maven Central]
+[![][Javadocs img]][Javadocs]
 
 # influx4j<sup><sup><sup>&nbsp;(*Work in-progress.  Est. v1.0 by end of Nov. 2017.*)</sup></sup></sup>
 
@@ -28,3 +30,9 @@ Zero garbage means the JVM interrupts your performance critical code less.<sup>1
 
 [license]:LICENSE
 [license img]:https://img.shields.io/badge/license-Apache%202-blue.svg
+
+[Maven Central]:https://maven-badges.herokuapp.com/maven-central/com.zaxxer/influx4j
+[Maven Central img]:https://maven-badges.herokuapp.com/maven-central/com.zaxxer/influx4j/badge.svg
+
+[Javadocs]:http://javadoc.io/doc/com.zaxxer/influx4j
+[Javadocs img]:http://javadoc.io/badge/com.zaxxer/influx4j.svg
