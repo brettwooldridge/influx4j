@@ -64,8 +64,7 @@ import java.util.concurrent.atomic.AtomicReferenceArray;
  *
  * <p>
  * Lock-Free Linked List as described in Maged Michael and Michael Scott's paper:
- * {@link http://www.cs.rochester.edu/~scott/papers/1996_PODC_queues.pdf}
- * <a href="http://www.cs.rochester.edu/~scott/papers/1996_PODC_queues.pdf">
+ * @see <a href="http://www.cs.rochester.edu/~scott/papers/1996_PODC_queues.pdf">
  * Simple, Fast, and Practical Non-Blocking and Blocking Concurrent Queue Algorithms</a>
  * <p>
  * The paper on Hazard Pointers is named "Hazard Pointers: Safe Memory
@@ -169,6 +168,8 @@ public class FAAArrayQueue<E> {
 
    /**
     * Progress condition: lock-free
+    *
+    * @return a dequeued item, or {@code null}
     */
    public E dequeue() {
       while (true) {
@@ -188,6 +189,11 @@ public class FAAArrayQueue<E> {
       }
    }
 
+   /**
+    * Get the current size of the queue.  This size is temporal and subject to race conditions.
+    *
+    * @return the number of items in the queue at the time of invocation
+    */
    public int size() {
       return size.get();
    }
