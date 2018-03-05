@@ -61,15 +61,13 @@ import java.util.concurrent.atomic.AtomicReferenceArray;
  * Uncontended enqueue: 1 FAA + 1 CAS + 1 HP
  * Uncontended dequeue: 1 FAA + 1 CAS + 1 HP
  *
+ * <p>
+ * Lock-Free Linked List as described in Maged Michael and Michael Scott's paper:<br>
+ * <a href="http://www.cs.rochester.edu/~scott/papers/1996_PODC_queues.pdf">Simple, Fast, and Practical Non-Blocking and Blocking Concurrent Queue Algorithms</a>
  *
- * <p>
- * Lock-Free Linked List as described in Maged Michael and Michael Scott's paper:
- * @see <a href="http://www.cs.rochester.edu/~scott/papers/1996_PODC_queues.pdf">
- * Simple, Fast, and Practical Non-Blocking and Blocking Concurrent Queue Algorithms</a>
- * <p>
  * The paper on Hazard Pointers is named "Hazard Pointers: Safe Memory
- * Reclamation for Lock-Free objects" and it is available here:
- * http://web.cecs.pdx.edu/~walpole/class/cs510/papers/11.pdf
+ * Reclamation for Lock-Free objects" and it is available here:<br>
+ * <a href="http://web.cecs.pdx.edu/~walpole/class/cs510/papers/11.pdf">Hazard Pointers: Safe Memory Reclamation for Lock-Free objects</a>
  *
  * @author Pedro Ramalhete
  * @author Andreia Correia
