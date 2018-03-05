@@ -1,5 +1,6 @@
 #!/bin/bash
 
+BATCH_MODE="-B"
 if [[ $1 =~ release ]]; then
    echo "Starting InfluxDB docker for test..."
 
@@ -17,9 +18,11 @@ if [[ $1 =~ release ]]; then
                --tmpfs /var/lib/influxdb:rw,noexec,nosuid,size=65536k \
                --detach influxdb:1.3 influxd)
    docker ps
+
+   BATCH_MODE=""
 fi
 
-mvn -DskipTests=true -Dmaven.javadoc.skip=true -V -B $1 $2 $3 $4 $5 $6
+mvn -DskipTests=true -Dmaven.javadoc.skip=true -V $BATCH_MODE $1 $2 $3 $4 $5 $6
 
 if [[ $1 =~ release ]]; then
    tmp=$(docker rm -f $docker_id)
