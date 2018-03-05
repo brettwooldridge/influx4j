@@ -187,6 +187,8 @@ public class InfluxDB implements AutoCloseable {
 
    /**
     * Get an instance of an InfluxDB {@link Builder}.
+    *
+    * @return a Builder for InfluxDB instances.
     */
    public static Builder builder() {
       return new Builder();
