@@ -37,7 +37,7 @@ public class LineProtocolTest {
 
    @Before
    public void createFactory() {
-      pointFactory = PointFactory.builder().size(1).build();
+      pointFactory = PointFactory.builder().initialSize(1).build();
    }
 
    @After
@@ -260,7 +260,7 @@ public class LineProtocolTest {
       final ByteBuffer buffer = ByteBuffer.allocate(128);
 
       final PointFactory factory = PointFactory.builder()
-              .size(1)
+              .initialSize(1)
               .build();
       try {
          final long timestamp = timestampNs();

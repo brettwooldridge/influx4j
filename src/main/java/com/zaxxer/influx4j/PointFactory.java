@@ -23,6 +23,7 @@ import com.zaxxer.influx4j.util.FAAArrayQueue;
  */
 public class PointFactory {
    private final FAAArrayQueue<Point> pointPool;
+   private final int maxPoolSize;
 
    public static Builder builder() {
       return new Builder();
@@ -39,15 +40,20 @@ public class PointFactory {
    }
 
    void returnPoint(final Point point) {
-      pointPool.enqueue(point);
+      if (pointPool.size() < maxPoolSize) {
+         pointPool.enqueue(point);
+      }
+
+      // otherwise, just allow the Point to be garbage collected
    }
 
    public void close() {
       while (pointPool.dequeue() != null);
    }
 
-   private PointFactory(final int initialPoolSize) {
+   private PointFactory(final int initialPoolSize, final int maxPoolSize) {
       this.pointPool = new FAAArrayQueue<>();
+      this.maxPoolSize = maxPoolSize;
 
       // Pre-populate the pool
       for (int i = 0; i < initialPoolSize; i++) {
@@ -61,17 +67,23 @@ public class PointFactory {
     */
    public static class Builder {
       private int size = 128;
+      private int maxSize = 512;
 
       private Builder() {
       }
 
-      public Builder size(final int size) {
+      public Builder initialSize(final int size) {
          this.size = size;
          return this;
       }
 
+      public Builder maximumSize(final int size) {
+         this.maxSize = size;
+         return this;
+      }
+
       public PointFactory build() {
-          return new PointFactory(size);
+          return new PointFactory(size, maxSize);
       }
    }
 }

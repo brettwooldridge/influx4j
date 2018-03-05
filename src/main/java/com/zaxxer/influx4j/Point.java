@@ -189,6 +189,7 @@ public class Point implements AutoCloseable {
    public String toString() {
       final ByteBuffer buf = ByteBuffer.allocate(MAXIMUM_SERIALIZED_POINT_SIZE);
       write(buf, Precision.MILLISECOND);
+      buf.flip();
       return StandardCharsets.UTF_8.decode(buf).toString();
    }
 

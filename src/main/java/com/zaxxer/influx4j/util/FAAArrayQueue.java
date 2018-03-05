@@ -4,14 +4,14 @@
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- *     * Redistributions of source code must retain the above copyright
- *       notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above copyright
- *       notice, this list of conditions and the following disclaimer in the
- *       documentation and/or other materials provided with the distribution.
- *     * Neither the name of Concurrency Freaks nor the
- *       names of its contributors may be used to endorse or promote products
- *       derived from this software without specific prior written permission.
+ *    * Redistributions of source code must retain the above copyright
+ *      notice, this list of conditions and the following disclaimer.
+ *    * Redistributions in binary form must reproduce the above copyright
+ *      notice, this list of conditions and the following disclaimer in the
+ *      documentation and/or other materials provided with the distribution.
+ *    * Neither the name of Concurrency Freaks nor the
+ *      names of its contributors may be used to endorse or promote products
+ *      derived from this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -77,128 +77,142 @@ import java.util.concurrent.atomic.AtomicReferenceArray;
  */
 public class FAAArrayQueue<E> {
 
-    static final int BUFFER_SIZE = 128;
+   static final int BUFFER_SIZE = 128;
 
-    static class Node<E> {
-        final AtomicInteger deqidx = new AtomicInteger(0);
-        final AtomicReferenceArray<E> items = new AtomicReferenceArray<E>(BUFFER_SIZE);
-        final AtomicInteger enqidx = new AtomicInteger(1);
-        volatile Node<E> next = null;
-        // Start with the first entry pre-filled and enqidx at 1
-        Node (final E item) {
-            items.lazySet(0, item);
-        }
+   static class Node<E> {
+      final AtomicInteger deqidx = new AtomicInteger(0);
+      final AtomicReferenceArray<E> items = new AtomicReferenceArray<E>(BUFFER_SIZE);
+      final AtomicInteger enqidx = new AtomicInteger(1);
+      volatile Node<E> next = null;
+      // Start with the first entry pre-filled and enqidx at 1
+      Node (final E item) {
+         items.lazySet(0, item);
+      }
 
-        /**
-         * @param cmp Previous {@code next}
-         * @param val New {@code next}
-         * @return {@code true} if CAS was successful
-         */
-        boolean casNext(Node<E> cmp, Node<E> val) {
-            return UNSAFE.compareAndSwapObject(this, nextOffset, cmp, val);
-        }
+      /**
+       * @param cmp Previous {@code next}
+       * @param val New {@code next}
+       * @return {@code true} if CAS was successful
+       */
+      boolean casNext(Node<E> cmp, Node<E> val) {
+         return UNSAFE.compareAndSwapObject(this, nextOffset, cmp, val);
+      }
 
-        // Unsafe mechanics
-        private static final sun.misc.Unsafe UNSAFE;
-        private static final long nextOffset;
+      // Unsafe mechanics
+      private static final sun.misc.Unsafe UNSAFE;
+      private static final long nextOffset;
 
-        static {
-            try {
-                Field f = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
-                f.setAccessible(true);
-                UNSAFE = (sun.misc.Unsafe) f.get(null);
-                nextOffset = UNSAFE.objectFieldOffset(Node.class.getDeclaredField("next"));
-            } catch (Exception e) {
-                throw new Error(e);
-            }
-        }
-    }
-
-    @sun.misc.Contended
-    private volatile Node<E> head;
-    @sun.misc.Contended
-    private volatile Node<E> tail;
-
-    final E taken = (E)new Object(); // Muuuahahah !
-
-
-    public FAAArrayQueue() {
-        final Node<E> sentinelNode = new Node<E>(null);
-        sentinelNode.enqidx.set(0);
-        head = sentinelNode;
-        tail = sentinelNode;
-    }
-
-
-    /**
-     * Progress Condition: Lock-Free
-     *
-     * @param item must not be null
-     */
-    public void enqueue(E item) {
-        if (item == null) throw new NullPointerException();
-        while (true) {
-            final Node<E> ltail = tail;
-            final int idx = ltail.enqidx.getAndIncrement();
-            if (idx > BUFFER_SIZE-1) { // This node is full
-                if (ltail != tail) continue;
-                final Node<E> lnext = ltail.next;
-                if (lnext == null) {
-                    final Node<E> newNode = new Node<E>(item);
-                    if (ltail.casNext(null, newNode)) {
-                        casTail(ltail, newNode);
-                        return;
-                    }
-                } else {
-                    casTail(ltail, lnext);
-                }
-                continue;
-            }
-            if (ltail.items.compareAndSet(idx, null, item)) return;
-        }
-    }
-
-
-    /**
-     * Progress condition: lock-free
-     */
-    public E dequeue() {
-        while (true) {
-            Node<E> lhead = head;
-            if (lhead.deqidx.get() >= lhead.enqidx.get() && lhead.next == null) return null;
-            final int idx = lhead.deqidx.getAndIncrement();
-            if (idx > BUFFER_SIZE-1) { // This node has been drained, check if there is another one
-                if (lhead.next == null) return null;  // No more nodes in the queue
-                casHead(lhead, lhead.next);
-                continue;
-            }
-            final E item = lhead.items.getAndSet(idx, taken); // We can use a CAS instead
-            if (item != null) return item;
-        }
-    }
-
-
-    private boolean casTail(Node<E> cmp, Node<E> val) {
-        return UNSAFE.compareAndSwapObject(this, tailOffset, cmp, val);
-    }
-
-    private boolean casHead(Node<E> cmp, Node<E> val) {
-        return UNSAFE.compareAndSwapObject(this, headOffset, cmp, val);
-    }
-
-    // Unsafe mechanics
-    private static final sun.misc.Unsafe UNSAFE;
-    private static final long tailOffset;
-    private static final long headOffset;
-    static {
-        try {
+      static {
+         try {
             Field f = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
             f.setAccessible(true);
             UNSAFE = (sun.misc.Unsafe) f.get(null);
-            tailOffset = UNSAFE.objectFieldOffset(FAAArrayQueue.class.getDeclaredField("tail"));
-            headOffset = UNSAFE.objectFieldOffset(FAAArrayQueue.class.getDeclaredField("head"));
-        } catch (Exception e) {
+            nextOffset = UNSAFE.objectFieldOffset(Node.class.getDeclaredField("next"));
+         } catch (Exception e) {
             throw new Error(e);
-        }
-    }
+         }
+      }
+   }
+
+   @sun.misc.Contended
+   private volatile Node<E> head;
+   @sun.misc.Contended
+   private volatile Node<E> tail;
+
+   private final AtomicInteger size;
+
+   final E taken = (E)new Object(); // Muuuahahah !
+
+
+   public FAAArrayQueue() {
+      this.size = new AtomicInteger();
+      final Node<E> sentinelNode = new Node<E>(null);
+      sentinelNode.enqidx.set(0);
+      head = sentinelNode;
+      tail = sentinelNode;
+   }
+
+
+   /**
+    * Progress Condition: Lock-Free
+    *
+    * @param item must not be null
+    */
+   public void enqueue(E item) {
+      if (item == null) throw new NullPointerException();
+      try {
+         while (true) {
+            final Node<E> ltail = tail;
+            final int idx = ltail.enqidx.getAndIncrement();
+            if (idx > BUFFER_SIZE-1) { // This node is full
+              if (ltail != tail) continue;
+              final Node<E> lnext = ltail.next;
+              if (lnext == null) {
+                final Node<E> newNode = new Node<E>(item);
+                if (ltail.casNext(null, newNode)) {
+                     casTail(ltail, newNode);
+                     return;
+                }
+              } else {
+                casTail(ltail, lnext);
+              }
+              continue;
+            }
+            if (ltail.items.compareAndSet(idx, null, item)) return;
+         }
+      }
+      finally {
+         size.incrementAndGet();
+      }
+   }
+
+
+   /**
+    * Progress condition: lock-free
+    */
+   public E dequeue() {
+      while (true) {
+         Node<E> lhead = head;
+         if (lhead.deqidx.get() >= lhead.enqidx.get() && lhead.next == null) return null;
+         final int idx = lhead.deqidx.getAndIncrement();
+         if (idx > BUFFER_SIZE-1) { // This node has been drained, check if there is another one
+            if (lhead.next == null) return null;  // No more nodes in the queue
+            casHead(lhead, lhead.next);
+            continue;
+         }
+         final E item = lhead.items.getAndSet(idx, taken); // We can use a CAS instead
+         if (item != null) {
+            size.decrementAndGet();
+            return item;
+         }
+      }
+   }
+
+   public int size() {
+      return size.get();
+   }
+
+   private boolean casTail(Node<E> cmp, Node<E> val) {
+      return UNSAFE.compareAndSwapObject(this, tailOffset, cmp, val);
+   }
+
+   private boolean casHead(Node<E> cmp, Node<E> val) {
+      return UNSAFE.compareAndSwapObject(this, headOffset, cmp, val);
+   }
+
+   // Unsafe mechanics
+   private static final sun.misc.Unsafe UNSAFE;
+   private static final long tailOffset;
+   private static final long headOffset;
+   static {
+      try {
+         Field f = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
+         f.setAccessible(true);
+         UNSAFE = (sun.misc.Unsafe) f.get(null);
+         tailOffset = UNSAFE.objectFieldOffset(FAAArrayQueue.class.getDeclaredField("tail"));
+         headOffset = UNSAFE.objectFieldOffset(FAAArrayQueue.class.getDeclaredField("head"));
+      } catch (Exception e) {
+         throw new Error(e);
+      }
+   }
 }

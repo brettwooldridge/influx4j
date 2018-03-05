@@ -28,7 +28,7 @@ public class DaemonThreadFactory implements ThreadFactory {
    @Override
    public Thread newThread(final Runnable r) {
       final Thread t = new Thread(r);
-      t.setName("influx4j stormpot " + discriminator + " thread");
+      t.setName("influx4j " + discriminator + " thread");
       t.setDaemon(true);
       return t;
    }
