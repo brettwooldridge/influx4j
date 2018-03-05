@@ -83,7 +83,7 @@ public class PointFactory {
       }
 
       public PointFactory build() {
-          return new PointFactory(size, maxSize);
+          return new PointFactory(size, Math.max(size, maxSize));
       }
    }
 }
