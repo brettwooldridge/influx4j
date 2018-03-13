@@ -516,11 +516,12 @@ public class InfluxDB implements AutoCloseable {
          try (Response response = call.execute()) {
             if (!response.isSuccessful()) {
                // TODO: What? Log? Pretty spammy...
+               LOGGER.warning("Error persisting points.  Response code: " + response.code() + ", message " + response.message());
             }
          }
          catch (final IOException io) {
             // TODO: What? Log? Pretty spammy...
-            io.printStackTrace();
+            LOGGER.warning("Exception persisting points.  Message: " + io.getLocalizedMessage());
          }
       }
    }

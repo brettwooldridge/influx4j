@@ -49,7 +49,6 @@ public class Point implements AutoCloseable {
    private String measurement;
    private long timestamp;
    private TimeUnit timeUnit;
-   private boolean firstFieldWritten;
 
    private final PointFactory parentFactory;
 
@@ -218,20 +217,25 @@ public class Point implements AutoCloseable {
          }
       }
 
+      boolean firstFieldWritten = false;
+
       for (int i = 0; i < stringFieldIndex; i++) {
-         serializeStringField(buffer, stringFields[i]);
+         serializeStringField(buffer, stringFields[i], firstFieldWritten);
+         firstFieldWritten = true;
       }
 
       for (int i = 0; i < longFieldIndex; i++) {
-         serializeLongField(buffer, longFields[i]);
+         serializeLongField(buffer, longFields[i], firstFieldWritten);
+         firstFieldWritten = true;
       }
 
       for (int i = 0; i < doubleFieldIndex; i++) {
-         serializeDoubleField(buffer, doubleFields[i]);
+         serializeDoubleField(buffer, doubleFields[i], firstFieldWritten);
+         firstFieldWritten = true;
       }
 
       for (int i = 0; i < booleanFieldIndex; i++) {
-         serializeBooleanField(buffer, boolFields[i]);
+         serializeBooleanField(buffer, boolFields[i], firstFieldWritten);
       }
 
       serializeTimestamp(buffer, precision.convert(timestamp, timeUnit));
@@ -258,7 +262,6 @@ public class Point implements AutoCloseable {
       booleanFieldIndex = 0;
       timestamp = 0;
       retentionCount.set(1);
-      firstFieldWritten = false;
 
       parentFactory.returnPoint(this);
    }
@@ -279,8 +282,8 @@ public class Point implements AutoCloseable {
       escapeTagKeyOrValue(buffer, pair.value());
    }
 
-   private void serializeStringField(final ByteBuffer buffer, final StringPair pair) {
-      addFieldSeparator(buffer);
+   private void serializeStringField(final ByteBuffer buffer, final StringPair pair, final boolean firstFieldWritten) {
+      addFieldSeparator(buffer, firstFieldWritten);
       escapeFieldKey(buffer, pair.name());
       buffer.put((byte) '=');
       buffer.put((byte) '"');
@@ -288,23 +291,23 @@ public class Point implements AutoCloseable {
       buffer.put((byte) '"');
    }
 
-   private void serializeLongField(final ByteBuffer buffer, final LongPair pair) {
-      addFieldSeparator(buffer);
+   private void serializeLongField(final ByteBuffer buffer, final LongPair pair, final boolean firstFieldWritten) {
+      addFieldSeparator(buffer, firstFieldWritten);
       escapeFieldKey(buffer, pair.name());
       buffer.put((byte) '=');
       writeLongToBuffer(pair.value(), buffer);
       buffer.put((byte) 'i');
    }
 
-   private void serializeDoubleField(final ByteBuffer buffer, final DoublePair pair) {
-      addFieldSeparator(buffer);
+   private void serializeDoubleField(final ByteBuffer buffer, final DoublePair pair, final boolean firstFieldWritten) {
+      addFieldSeparator(buffer, firstFieldWritten);
       escapeFieldKey(buffer, pair.name());
       buffer.put((byte) '=');
       writeDoubleToBuffer(pair.value(), buffer);
    }
 
-   private void serializeBooleanField(final ByteBuffer buffer, final BooleanPair pair) {
-      addFieldSeparator(buffer);
+   private void serializeBooleanField(final ByteBuffer buffer, final BooleanPair pair, final boolean firstFieldWritten) {
+      addFieldSeparator(buffer, firstFieldWritten);
       escapeFieldKey(buffer, pair.name());
       buffer.put((byte) '=');
       buffer.put(pair.value() ? (byte) 't' : (byte) 'f');
@@ -413,12 +416,11 @@ public class Point implements AutoCloseable {
     * Miscellaneous
     */
 
-   private void addFieldSeparator(final ByteBuffer buffer) {
+   private void addFieldSeparator(final ByteBuffer buffer, final boolean firstFieldWritten) {
       if (firstFieldWritten) {
          buffer.put((byte) ',');
       }
       else {
-         firstFieldWritten = true;
          buffer.put((byte) ' ');
       }
    }
