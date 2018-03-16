@@ -115,6 +115,10 @@ public class Point implements AutoCloseable {
       return this;
    }
 
+   public long getTimestamp() {
+      return timeUnit.toMillis(timestamp);
+   }
+
    public Point measurement(final String measurement) {
       this.measurement = measurement;
       return this;
