@@ -78,56 +78,115 @@ public class Point implements AutoCloseable {
       for (int i = 0; i < MAX_FIELD_COUNT; i++) doubleFields[i] = new DoublePair();
    }
 
+   /**
+    * Tag the {@link Point} with the specified string value.
+    * @param tag the name of the tag
+    * @param value the string value associated with the tag
+    * @return the {@link Point}
+    */
    public Point tag(final String tag, final String value) {
       tags[tagIndex++].setPair(tag, value);
       return this;
    }
 
+   /**
+    * Add a string field to the {@link Point} with the specified value.
+    * @param field the name of the field
+    * @param value the string value associated with the field
+    * @return the {@link Point}
+    */
    public Point field(final String field, final String value) {
       stringFields[stringFieldIndex++].setPair(field, value);
       return this;
    }
 
+   /**
+    * Add a long integer field to the {@link Point} with the specified value.
+    * @param field the name of the field
+    * @param value the long value associated with the field
+    * @return the {@link Point}
+    */
    public Point field(final String field, final long value) {
       longFields[longFieldIndex++].setPair(field, value);
       return this;
    }
 
+   /**
+    * Add a floating point double field to the {@link Point} with the specified value.
+    * @param field the name of the field
+    * @param value the double value associated with the field
+    * @return the {@link Point}
+    */
    public Point field(final String field, final double value) {
       doubleFields[doubleFieldIndex++].setPair(field, value);
       return this;
    }
 
+   /**
+    * Add a boolean field to the {@link Point} with the specified value.
+    * @param field the name of the field
+    * @param value the boolean value associated with the field
+    * @return the {@link Point}
+    */
    public Point field(final String field, final boolean value) {
       boolFields[booleanFieldIndex++].setPair(field, value);
       return this;
    }
 
+   /**
+    * Timestamp the {@link Point} with the millisecond resolution time value returned
+    * by {@link System#currentTimeMillis()}.
+    * @return the {@link Point}
+    */
    public Point timestamp() {
       this.timestamp = System.currentTimeMillis();
       this.timeUnit = TimeUnit.MILLISECONDS;
       return this;
    }
 
+   /**
+    * Timestamp the {@link Point} with the specified time value and {@link TimeUnit} resolution.
+    * @param timestamp the time value
+    * @param timeUnit the resolution of the time value
+    * @return the {@link Point}
+    */
    public Point timestamp(final long timestamp, final TimeUnit timeUnit) {
       this.timestamp = timestamp;
       this.timeUnit = timeUnit;
       return this;
    }
 
+   /**
+    * Get the timestamp of this {@link Point} in milliseconds.
+    * @return the {@link Point} timestamp in milliseconds
+    */
    public long getTimestamp() {
       return timeUnit.toMillis(timestamp);
    }
 
+   /**
+    * Set the measurement name of this {@link Point}.
+    * @return the {@link Point}
+    */
    public Point measurement(final String measurement) {
       this.measurement = measurement;
       return this;
    }
 
+   /**
+    * Get the measurement name of this {@link Point}.
+    * @return the measurement name
+    */
    public String measurement() {
       return measurement;
    }
 
+   /**
+    * Get the value of the specified long integer field as an auto-boxed {@link Long}.  If no
+    * long integer field was set on this {@link Point}, the return value will be {@code null}.
+    * @param field the name of the long integer field
+    * @return the long integer field value or {@code null}
+    */
    public Long longField(final String field) {
       for (int i = 0; i < longFieldIndex; i++) {
          if (field.equals(longFields[i].name)) {
@@ -137,6 +196,12 @@ public class Point implements AutoCloseable {
       return null;
    }
 
+   /**
+    * Get the value of the specified floating point double field as an auto-boxed {@link Double}.
+    * If no double field was set on this {@link Point}, the return value will be {@code null}.
+    * @param field the name of the double field
+    * @return the double field value or {@code null}
+    */
    public Double doubleField(final String field) {
       for (int i = 0; i < doubleFieldIndex; i++) {
          if (field.equals(doubleFields[i].name)) {
@@ -146,7 +211,13 @@ public class Point implements AutoCloseable {
       return null;
    }
 
-   public Boolean booleanField(final String field) {
+   /**
+    * Get the value of the specified boolean field as an auto-boxed {@link Boolean}.  If no
+    * boolean field was set on this {@link Point}, the return value will be {@code null}.
+    * @param field the name of the boolean field
+    * @return the boolean field value or {@code null}
+    */
+    public Boolean booleanField(final String field) {
       for (int i = 0; i < booleanFieldIndex; i++) {
          if (field.equals(boolFields[i].name)) {
             return boolFields[i].value;
@@ -155,6 +226,12 @@ public class Point implements AutoCloseable {
       return null;
    }
 
+   /**
+    * Get the value of the specified string field.  If no string field was set on this
+    * {@link Point}, the return value will be {@code null}.
+    * @param field the name of the string field
+    * @return the string field value or {@code null}
+    */
    public String stringField(final String field) {
       for (int i = 0; i < stringFieldIndex; i++) {
          if (field.equals(stringFields[i].name)) {
@@ -164,6 +241,12 @@ public class Point implements AutoCloseable {
       return null;
    }
 
+   /**
+    * Get the value of the specified tag.  If no such tag was set on this {@link Point},
+    * the return value will be {@code null}.
+    * @param tag the name of the tag
+    * @return the string value or {@code null}
+    */
    public String tag(final String tag) {
       for (int i = 0; i < tagIndex; i++) {
          if (tag.equals(tags[i].name)) {
@@ -173,10 +256,34 @@ public class Point implements AutoCloseable {
       return null;
    }
 
+   /**
+    * Calling this method will prevent the {@link Point} from returning to the pool of points
+    * maintained by the {@link PointFactory} until the {@link #close()} method is called.
+    * <p>
+    * Each invocation of this method effectively increases an internal "retention count" by one (1).
+    * Calling the {@link #close()} method effectively reduces the "retention count" by one (1).  When
+    * {@link #close()} is called, and the "retention count" reaches zero (0), the pool will be
+    * returned back to the pool of points in the {@link PointFactory}.
+    * <p>
+    * Every {@link Point} obtained by the {@link PointFactory} has an initial retention count of
+    * one (1).  When a point is queued for write by calling {@link InfluxDB#write(Point)}, the
+    * {@link InfluxDB} class will automatically call {@link #close()} after the {@link Point} is
+    * written.  This method can thus be used to prevent the {@link Point} from being returned to the
+    * pool, making the caller of this method responsible for explicitly calling {@link #close()}.
+    */
    public void retain() {
       retentionCount.incrementAndGet();
    }
 
+   /**
+    * This method is used in conjunction with the {@link #retain()} method to return a {@link Point}
+    * back to the pool of points maintained by the {@link PointFactory}.
+    * <p>
+    * Neither this method, nor the {@link #retain()} method, are needed in typical use scenarios.
+    * Only invoke this method if a matching {@link #retain()} call has been made, or if you wish
+    * to return the point to the pool <i>without</i> writing it to InfluxDB.
+    * @see #retain() for more details.
+    */
    @Override
    public void close() {
       final int refs = retentionCount.decrementAndGet();
@@ -188,6 +295,39 @@ public class Point implements AutoCloseable {
       }
    }
 
+   /**
+    * Create a copy of this {@link Point}, including its measurement name, tags, and timestamp, but
+    * <i>excluding</i> any fields.
+    * @return a copy of this {@link Point}, excluding any fields
+    */
+   public Point copy() {
+      return copy(measurement);
+   }
+
+   /**
+    * Create a copy of this {@link Point}, including its tags  and timestamp, but <i>excluding</i> any
+    * fields and using the measurement name specified here.
+    * @param measurement the measurement name to be used in the copied {@link Point}
+    * @return a copy of this {@link Point}, excluding any fields and using the specified measurement name
+    */
+   public Point copy(final String measurement) {
+      final Point copy = parentFactory.createPoint(measurement);
+
+      final int tagCount = tagIndex;
+      copy.tagIndex = tagCount;
+      for (int i = 0; i < tagCount; i++) {
+         copy.tags[i] = tags[i];
+      }
+
+      copy.timestamp = timestamp;
+      copy.timeUnit = timeUnit;
+
+      return copy;
+   }
+
+   /**
+    * {@inheritDoc}
+    */
    @Override
    public String toString() {
       final ByteBuffer buf = ByteBuffer.allocate(MAXIMUM_SERIALIZED_POINT_SIZE);
@@ -420,7 +560,7 @@ public class Point implements AutoCloseable {
     * Miscellaneous
     */
 
-   private void addFieldSeparator(final ByteBuffer buffer, final boolean firstFieldWritten) {
+   private static final void addFieldSeparator(final ByteBuffer buffer, final boolean firstFieldWritten) {
       if (firstFieldWritten) {
          buffer.put((byte) ',');
       }
