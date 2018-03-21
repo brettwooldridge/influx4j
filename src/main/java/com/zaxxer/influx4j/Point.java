@@ -316,7 +316,7 @@ public class Point implements AutoCloseable {
       final int tagCount = tagIndex;
       copy.tagIndex = tagCount;
       for (int i = 0; i < tagCount; i++) {
-         copy.tags[i] = tags[i];
+         copy.tags[i].setPair(tags[i]);
       }
 
       copy.timestamp = timestamp;
@@ -593,6 +593,11 @@ public class Point implements AutoCloseable {
       void setPair(final String name, final String value) {
          this.name = name;
          this.value = value;
+      }
+
+      void setPair(final StringPair other) {
+         this.name = other.name;
+         this.value = other.value;
       }
 
       String name() {
