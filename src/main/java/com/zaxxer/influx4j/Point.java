@@ -85,7 +85,9 @@ public class Point implements AutoCloseable {
     * @return the {@link Point}
     */
    public Point tag(final String tag, final String value) {
-      tags[tagIndex++].setPair(tag, value);
+      if (tag != null && value != null) {
+         tags[tagIndex++].setPair(tag, value);
+      }
       return this;
    }
 
@@ -96,7 +98,9 @@ public class Point implements AutoCloseable {
     * @return the {@link Point}
     */
    public Point field(final String field, final String value) {
-      stringFields[stringFieldIndex++].setPair(field, value);
+      if (field != null && value != null) {
+         stringFields[stringFieldIndex++].setPair(field, value);
+      }
       return this;
    }
 
@@ -107,7 +111,9 @@ public class Point implements AutoCloseable {
     * @return the {@link Point}
     */
    public Point field(final String field, final long value) {
-      longFields[longFieldIndex++].setPair(field, value);
+      if (field != null) {
+         longFields[longFieldIndex++].setPair(field, value);
+      }
       return this;
    }
 
@@ -118,7 +124,9 @@ public class Point implements AutoCloseable {
     * @return the {@link Point}
     */
    public Point field(final String field, final double value) {
-      doubleFields[doubleFieldIndex++].setPair(field, value);
+      if (field != null) {
+         doubleFields[doubleFieldIndex++].setPair(field, value);
+      }
       return this;
    }
 
@@ -129,7 +137,9 @@ public class Point implements AutoCloseable {
     * @return the {@link Point}
     */
    public Point field(final String field, final boolean value) {
-      boolFields[booleanFieldIndex++].setPair(field, value);
+      if (field != null) {
+         boolFields[booleanFieldIndex++].setPair(field, value);
+      }
       return this;
    }
 
@@ -169,7 +179,9 @@ public class Point implements AutoCloseable {
     * @return the {@link Point}
     */
    public Point measurement(final String measurement) {
-      this.measurement = measurement;
+      if (measurement != null) {
+         this.measurement = measurement;
+      }
       return this;
    }
 
