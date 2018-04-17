@@ -50,13 +50,13 @@ public class InsertionTest {
    @Test
    public void testSingleInsert() throws Exception {
       final Point point = pointFactory.createPoint("testSingleInsert")
-         .tag("tag", "apple")
-         .field("boolean", true)
+         .tag("fruit", "apple")
+         .field("yummy", true)
          .timestamp(System.currentTimeMillis(), TimeUnit.MILLISECONDS);
 
       influxDB.write(point);
 
-      TimeUnit.SECONDS.sleep(1);
+      TimeUnit.SECONDS.sleep(1); // to allow async flush to run before querying
 
       // TODO query and verify
    }
@@ -66,14 +66,14 @@ public class InsertionTest {
       final long timeNs = TimeUnit.MILLISECONDS.toNanos(System.currentTimeMillis());
       for (int i = 0; i < 1000; i++) {
          final Point point = pointFactory.createPoint("testMultipleInserts")
-            .tag("tag", "banana")
+            .tag("fruit", "banana")
             .field("count", i)
             .timestamp(timeNs + i, TimeUnit.NANOSECONDS);
 
          influxDB.write(point);
       }
 
-      TimeUnit.SECONDS.sleep(1);
+      TimeUnit.SECONDS.sleep(1); // to allow async flush to run before querying
 
       // TODO query and verify
    }
