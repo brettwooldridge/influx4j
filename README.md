@@ -62,7 +62,7 @@ You *can* obtain ``Points`` from the ``PointFactory`` that you simply throw away
 ### :diamond_shape_with_a_dot_inside: Creating a ``Point``
 Once you have a ``PointFactory`` instance, you are ready to create ``Point`` instances to persist.  The ``Point`` class implements a builder-like pattern.
 
-Creating a ``Point`` for a measurement named *"consumerPoll123"*:
+Example of creating a ``Point`` for a measurement named *"consumerPoll123"*:
 ```Java
 PointFactory pointFactory = ...
 
@@ -92,7 +92,7 @@ It is quite common to have a set of measurements which share a common set of tag
 Copying a ``Point``:
 ```Java
 Point point1 = pointFactory
-   .createPoint("procMemory")
+   .createPoint("procStats")
    .tag("dataCenter", "Tall Pines")
    .tag("hostId", "web.223")
    .field("cpuUsage", hostCpu)
@@ -101,16 +101,16 @@ Point point1 = pointFactory
    .timestamp();
 
 Point point2 = point1
-   .copy("network")
-   .tag("interface", "eth0")
+   .copy("netStats")
    .field("inOctets", hostCpu)
    .field("outOctets", hostMemTotal)
 ```
 There are several important things to note about the ``copy()`` method:
- * All _**tags**_ are copied.  In this example, ``point2`` will also contain the *"dataCenter"* and *"hostId"* tags.
+ * A new _**measurement**_ name is specified as a parameter to the ``copy()`` method.
+ * All _**tags**_ are copied.  In this example, ``point2`` will also contain the *"dataCenter"* and *"hostId"* tags from ``point1``.
  * No _**field**_ values are copied.
  * The _**timestamp**_ of the source ``Point`` is copied (retained).
- * The copied point, ``point2`` in the example above, is a ``Point`` like any other, and therefore additional _**tags**_ and _**fields*_ may be added, and the _**timestamp**_ changed/updated via the standard methods.
+ * The copied point, ``point2`` in the example above, is a ``Point`` like any other, and therefore additional _**tags**_ and _**fields**_ may be added, and the _**timestamp**_ changed/updated via the standard methods.
 
 ------------------------------------------------------------------------------------------------------------------------------
 See the [InsertionTest](https://github.com/brettwooldridge/influx4j/blob/master/src/test/java/com/zaxxer/influx4j/InsertionTest.java) for example usage, until I have time to write full docs.
@@ -125,5 +125,5 @@ See the [InsertionTest](https://github.com/brettwooldridge/influx4j/blob/master/
 [Maven Central]:https://maven-badges.herokuapp.com/maven-central/com.zaxxer/influx4j
 [Maven Central img]:https://maven-badges.herokuapp.com/maven-central/com.zaxxer/influx4j/badge.svg
 
-[Javadocs]:http://javadoc.io/doc/com.zaxxer/influx4j
+[Javadocs]:http://javadoc.io/doc/com.zaxxer/influx4j/1.5
 [Javadocs img]:http://javadoc.io/badge/com.zaxxer/influx4j.svg
