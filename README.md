@@ -49,11 +49,12 @@ PointFactory pointFactory =
 ```
 The ``maximumSize`` should be tuned to somewhat larger than the maximum number of points generated per-second by your application.  That is, assuming the default "auto-flush" interval of one second.
 
-Note that the pool never *shrinks*.  The total memory consumed by the pool will be determined, therefore, by the "high water mark" of usage.  Keep this in mind when setting the ``maximumSize``.  You *can* actually force the pool to empty by calling the ``flush()`` method, but know that doing so will therefore create garbage out of the contents.
+The total memory consumed by the pool will be determined by the "high water mark" of usage.  Keep this in mind when setting the ``maximumSize``.  You *can* actually force the pool to empty by calling the ``flush()`` method, but know that doing so will therefore create garbage out of the contents.
 
 #### PointFactory Behaviors
  * Your application will never "block" when creating a ``Point``.  If the internal pool is empty, a new ``Point`` object will be allocated.
  * The internal pool will never exceed the configured maximum size.  If the pool is full when a ``Point`` is returned, that ``Point`` will be discarded for garbage collection.  Therefore, in order to avoid garbage generation, the maximum size should be set based on your application's insertion rate and the configured *auto-flush* rate (*see below*).
+ * The internal pool *never shrinks*.  As noted above, you can completely empty the pool by called the ``flush()`` method on the ``PointFactory`` instance, **but it is not recommended**.
  
 
 ------------------------------------------------------------------------------------------------------------------------------
