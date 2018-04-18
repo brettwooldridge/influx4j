@@ -56,6 +56,7 @@ The total memory consumed by the pool will be determined by the "high water mark
  * The internal pool will never exceed the configured maximum size.  If the pool is full when a ``Point`` is returned, that ``Point`` will be discarded for garbage collection.  Therefore, in order to avoid garbage generation, the maximum size should be set based on your application's insertion rate and the configured *auto-flush* rate (*see below*).
  * The internal pool *never shrinks*.  As noted above, you can completely empty the pool by called the ``flush()`` method on the ``PointFactory`` instance, **but it is not recommended**.
  
+You *can* obtain ``Points`` from the ``PointFactory`` that you simply throw away, without damaging the pool.  For example, if your code may throw an exception after creating a ``Point``, but before persisting it, you need not worry about recycling the ``Point`` via try-finally logic etc.  Just don't make a habit of casually throwing away Points, after all, decreasing garbage is one of the goals of the library.
 
 ------------------------------------------------------------------------------------------------------------------------------
 See the [InsertionTest](https://github.com/brettwooldridge/influx4j/blob/master/src/test/java/com/zaxxer/influx4j/InsertionTest.java) for example usage, until I have time to write full docs.
