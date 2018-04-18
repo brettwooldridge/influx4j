@@ -29,7 +29,7 @@ Zero garbage means the JVM interrupts your performance critical code less.<sup>1
 -----------------------------------------------------------------------------------------------------------------------
 
 ### :factory: PointFactory
-Toward the goal of zero-garbage, *influx4j* employs a pooling scheme for ``Point`` instances, such that ``Point`` objects are recycled within the system.  This pool is contained within a factory for producing Points: ``PointFactory``.
+Towards the goal of zero-garbage, *influx4j* employs a pooling scheme for ``Point`` instances, such that ``Point`` objects are recycled within the system.  This pool is contained within a factory for producing Points: ``PointFactory``.
 
 The first thing your application will need to do is to configure and create a ``PointFactory``.  The only configuration options are the *initial size* of the pool and the *maximum size* of the pool.
 
