@@ -29,7 +29,7 @@ Zero garbage means the JVM interrupts your performance critical code less.<sup>1
 
 ## Usage
 
-### :factory: PointFactory
+### :factory: Creating a ``PointFactory``
 Towards the goal of zero-garbage, *influx4j* employs a pooling scheme for ``Point`` instances, such that ``Point`` objects are recycled within the system.  This pool is contained within a factory for producing Points: ``PointFactory``.
 
 The first thing your application will need to do is to configure and create a ``PointFactory``.  The only configuration options are the *initial size* of the pool and the *maximum size* of the pool.
@@ -58,6 +58,59 @@ The total memory consumed by the pool will be determined by the "high water mark
  * The internal pool *never shrinks*.  As noted above, you can completely empty the pool by called the ``flush()`` method on the ``PointFactory`` instance, **but it is not recommended**.
  
 You *can* obtain ``Points`` from the ``PointFactory`` that you simply throw away, without damaging the pool.  For example, if your code may throw an exception after creating a ``Point``, but before persisting it, you need not worry about recycling the ``Point`` via try-finally logic etc.  Just don't make a habit of casually throwing away Points, after all, decreasing garbage is one of the goals of the library.
+
+### :diamond_shape_with_a_dot_inside: Creating a ``Point``
+Once you have a ``PointFactory`` instance, you are ready to create ``Point`` instances to persist.  The ``Point`` class implements a builder-like pattern.
+
+Creating a ``Point`` for a measurement named *"consumerPoll123"*:
+```Java
+PointFactory pointFactory = ...
+
+Point point = pointFactory
+   .createPoint("consumerPoll123")
+   .tag("fruit", "apple")
+   .field("yummy", true)
+   .field("score", 9.5d)
+   .timestamp();
+```
+The *timestamp* can also be specified explicitly:
+```Java
+Point point = pointFactory
+   .createPoint("consumerPoll123")
+   .tag("fruit", "banana")
+   .field("yummy", false)
+   .field("score", 5.0d)
+   .timestamp(submissionTS, TimeUnit.MILLISECONDS);
+```
+Note that while a ``TimeUnit`` may be specified on the ``Point``, the ultimate precision of the persisted timestamp will be determined by the *precision* specified in the connection information (*see below for details about connection parameters*).  The ``TimeUnit`` specified on the ``Point`` timestamp will automatically be converted to the precision of the connection.
+
+``Point`` contains ``field()`` methods for the following Java types: ``String``, ``Long``, ``Double``, ``Boolean``.  *Tag* values, as per InfluxDB specification, must be strings.
+
+#### ``Point`` Copying
+It is quite common to have a set of measurements which share a common set of tags, and which are produced at the same time for insertion into InfluxDB.  The ``Point`` class provides a ``copy()`` method that make this more efficient, both in terms of execution time and code brevity.
+
+Copying a ``Point``:
+```Java
+Point point1 = pointFactory
+   .createPoint("procMemory")
+   .tag("dataCenter", "Tall Pines")
+   .tag("hostId", "web.223")
+   .field("cpuUsage", hostCpu)
+   .field("memTotal", hostMemTotal)
+   .field("memFree", hostMemFree)
+   .timestamp();
+
+Point point2 = point1
+   .copy("network")
+   .tag("interface", "eth0")
+   .field("inOctets", hostCpu)
+   .field("outOctets", hostMemTotal)
+```
+There are several important things to note about the ``copy()`` method:
+ * All _**tags**_ are copied.  In this example, ``point2`` will also contain the *"dataCenter"* and *"hostId"* tags.
+ * No _**field**_ values are copied.
+ * The _**timestamp**_ of the source ``Point`` is copied (retained).
+ * The copied point, ``point2`` in the example above, is a ``Point`` like any other, and therefore additional _**tags**_ and _**fields*_ may be added, and the _**timestamp**_ changed/updated via the standard methods.
 
 ------------------------------------------------------------------------------------------------------------------------------
 See the [InsertionTest](https://github.com/brettwooldridge/influx4j/blob/master/src/test/java/com/zaxxer/influx4j/InsertionTest.java) for example usage, until I have time to write full docs.
