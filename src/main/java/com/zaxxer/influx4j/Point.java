@@ -29,7 +29,7 @@ import static com.zaxxer.influx4j.util.FastValue2Buffer.writeDoubleToBuffer;
 import static com.zaxxer.influx4j.util.FastValue2Buffer.writeLongToBuffer;
 
 /**
- * An instance of this class represents a single <i>measurement<i> and associated <i>tags</i>,
+ * An instance of this class represents a single <i>measurement</i> and associated <i>tags</i>,
  * <i>fields</i>, and <i>timestamp</i> to be persisted in InfluxDB via the {@link InfluxDB#write(Point)}
  * method.
  *
@@ -180,6 +180,7 @@ public class Point implements AutoCloseable {
 
    /**
     * Set the measurement name of this {@link Point}.
+    * @param measurement the new measurement name
     * @return this {@link Point}
     */
    public Point measurement(final String measurement) {
