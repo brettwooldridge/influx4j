@@ -25,6 +25,38 @@ Zero garbage means the JVM interrupts your performance critical code less.<sup>1
 
 <sub><sup>1</sup>&nbsp;Note: While influx4j generates zero garbage, *your application*, and *associated libraries* likely generate garbage that will still require collection.</sub>
 
+## Usage
+-----------------------------------------------------------------------------------------------------------------------
+
+### :factory: PointFactory
+Toward the goal of zero-garbage, *influx4j* employs a pooling scheme for ``Point`` instances, such that ``Point`` objects are recycled within the system.  This pool is contained within a factory for producing Points: ``PointFactory``.
+
+The first thing your application will need to do is to configure and create a ``PointFactory``.  The only configuration options are the *initial size* of the pool and the *maximum size* of the pool.
+
+Your application can create multiple ``PointFactory`` instances, or a singleton one; it's up to you.  All methods on the ``PointFactory`` are *thread-safe*, so no additional synchronization is required.
+
+A ``PointFactory`` with a default *initial size* of 128 ``Point`` objects and *maximum size* of 512 ``Point`` objects can be constructed like so:
+```Java
+PointFactory pointFactory = PointFactory.builder().build();
+```
+And here is a ``PointFactory`` created with custom configuration:
+```Java
+PointFactory pointFactory =
+   PointFactory.builder()
+               .initialSize(1000)
+               .maximumSize(8000)
+               .build();
+```
+The ``maximumSize`` should be tuned to somewhat larger than the maximum number of points generated per-second by your application.  That is, assuming the default "auto-flush" interval of one second.
+
+Note that the pool never *shrinks*.  The total memory consumed by the pool will be determined, therefore, by the "high water mark" of usage.  Keep this in mind when setting the ``maximumSize``.  You *can* actually force the pool to empty by calling the ``flush()`` method, but know that doing so will therefore create garbage out of the contents.
+
+#### PointFactory Behaviors
+ * Your application will never "block" when creating a ``Point``.  If the internal pool is empty, a new ``Point`` object will be allocated.
+ * The internal pool will never exceed the configured maximum size.  If the pool is full when a ``Point`` is returned, that ``Point`` will be discarded for garbage collection.  Therefore, in order to avoid garbage generation, the maximum size should be set based on your application's insertion rate and the configured *auto-flush* rate (*see below*).
+ 
+
+------------------------------------------------------------------------------------------------------------------------------
 See the [InsertionTest](https://github.com/brettwooldridge/influx4j/blob/master/src/test/java/com/zaxxer/influx4j/InsertionTest.java) for example usage, until I have time to write full docs.
 
 :warning: This driver currently only supports *write-only* operation to InfluxDB, where performance is critical.  I *do* intend to add query support, but the schedule for doing so is currently uncommitted.
