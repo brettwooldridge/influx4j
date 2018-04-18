@@ -29,6 +29,10 @@ import static com.zaxxer.influx4j.util.FastValue2Buffer.writeDoubleToBuffer;
 import static com.zaxxer.influx4j.util.FastValue2Buffer.writeLongToBuffer;
 
 /**
+ * An instance of this class represents a single <i>measurement<i> and associated <i>tags</i>,
+ * <i>fields</i>, and <i>timestamp</i> to be persisted in InfluxDB via the {@link InfluxDB#write(Point)}
+ * method.
+ *
  * @author brett.wooldridge at gmail.com
  */
 public class Point implements AutoCloseable {
@@ -82,7 +86,7 @@ public class Point implements AutoCloseable {
     * Tag the {@link Point} with the specified string value.
     * @param tag the name of the tag
     * @param value the string value associated with the tag
-    * @return the {@link Point}
+    * @return this {@link Point}
     */
    public Point tag(final String tag, final String value) {
       if (tag != null && value != null) {
@@ -95,7 +99,7 @@ public class Point implements AutoCloseable {
     * Add a string field to the {@link Point} with the specified value.
     * @param field the name of the field
     * @param value the string value associated with the field
-    * @return the {@link Point}
+    * @return this {@link Point}
     */
    public Point field(final String field, final String value) {
       if (field != null && value != null) {
@@ -108,7 +112,7 @@ public class Point implements AutoCloseable {
     * Add a long integer field to the {@link Point} with the specified value.
     * @param field the name of the field
     * @param value the long value associated with the field
-    * @return the {@link Point}
+    * @return this {@link Point}
     */
    public Point field(final String field, final long value) {
       if (field != null) {
@@ -121,7 +125,7 @@ public class Point implements AutoCloseable {
     * Add a floating point double field to the {@link Point} with the specified value.
     * @param field the name of the field
     * @param value the double value associated with the field
-    * @return the {@link Point}
+    * @return this {@link Point}
     */
    public Point field(final String field, final double value) {
       if (field != null) {
@@ -134,7 +138,7 @@ public class Point implements AutoCloseable {
     * Add a boolean field to the {@link Point} with the specified value.
     * @param field the name of the field
     * @param value the boolean value associated with the field
-    * @return the {@link Point}
+    * @return this {@link Point}
     */
    public Point field(final String field, final boolean value) {
       if (field != null) {
@@ -146,7 +150,7 @@ public class Point implements AutoCloseable {
    /**
     * Timestamp the {@link Point} with the millisecond resolution time value returned
     * by {@link System#currentTimeMillis()}.
-    * @return the {@link Point}
+    * @return this {@link Point}
     */
    public Point timestamp() {
       this.timestamp = System.currentTimeMillis();
@@ -158,7 +162,7 @@ public class Point implements AutoCloseable {
     * Timestamp the {@link Point} with the specified time value and {@link TimeUnit} resolution.
     * @param timestamp the time value
     * @param timeUnit the resolution of the time value
-    * @return the {@link Point}
+    * @return this {@link Point}
     */
    public Point timestamp(final long timestamp, final TimeUnit timeUnit) {
       this.timestamp = timestamp;
@@ -168,7 +172,7 @@ public class Point implements AutoCloseable {
 
    /**
     * Get the timestamp of this {@link Point} in milliseconds.
-    * @return the {@link Point} timestamp in milliseconds
+    * @return this {@link Point} timestamp in milliseconds
     */
    public long getTimestamp() {
       return timeUnit.toMillis(timestamp);
@@ -176,7 +180,7 @@ public class Point implements AutoCloseable {
 
    /**
     * Set the measurement name of this {@link Point}.
-    * @return the {@link Point}
+    * @return this {@link Point}
     */
    public Point measurement(final String measurement) {
       if (measurement != null) {
@@ -317,7 +321,7 @@ public class Point implements AutoCloseable {
    }
 
    /**
-    * Create a copy of this {@link Point}, including its tags  and timestamp, but <i>excluding</i> any
+    * Create a copy of this {@link Point}, including its tags and timestamp, but <i>excluding</i> any
     * fields and using the measurement name specified here.
     * @param measurement the measurement name to be used in the copied {@link Point}
     * @return a copy of this {@link Point}, excluding any fields and using the specified measurement name

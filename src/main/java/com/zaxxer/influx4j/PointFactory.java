@@ -19,16 +19,34 @@ package com.zaxxer.influx4j;
 import com.zaxxer.influx4j.util.FAAArrayQueue;
 
  /**
- * @author brett.wooldridge at gmail.com
- */
+  * This class provides the source of {@link Point} instances to be persisted by
+  * calling {@link InfluxDB#write(Point)}.
+  *
+  * @author brett.wooldridge at gmail.com
+  */
 public class PointFactory {
    private final FAAArrayQueue<Point> pointPool;
    private final int maxPoolSize;
 
+   /**
+    * Obtain a new {@link PointFactory.Builder} instance to configure and create
+    * a {@link PointFactory}.
+    *
+    * @return a new {@link PointFactory.Builder} instance
+    */
    public static Builder builder() {
       return new Builder();
    }
 
+   /**
+    * Create a {@link Point} with the specified {@code measurement} name.
+    * <p>
+    * This method is <i>thread-safe</i> and may safely be called by multiple threads
+    * concurrently.
+    *
+    * @param measurement the measurement name
+    * @return a new {@link Point} instance, likely obtained from the internal pool
+    */
    public Point createPoint(final String measurement) {
       Point point = pointPool.dequeue();
       if (point == null) {
@@ -47,7 +65,15 @@ public class PointFactory {
       // otherwise, just allow the Point to be garbage collected
    }
 
-   public void close() {
+   /**
+    * Flush all {@link Point} instances from the internal pool.  Use of this method
+    * is not generally necessary nor recommended due to the impact on performance
+    * as well as garbage generation side-effect.
+    * <p>
+    * This method is <i>thread-safe</i> and may safely be called by multiple threads or
+    * while other threads are calling {@link #createPoint(String)}.
+    */
+   public void flush() {
       while (pointPool.dequeue() != null);
    }
 
@@ -63,7 +89,7 @@ public class PointFactory {
 
    /**
     * Builder for a {@link PointFactory} instance.  Call {@link PointFactory#builder()} to
-    * create an instance of the {@link Builder}.
+    * create an instance of the {@link PointFactory.Builder}.
     */
    public static class Builder {
       private int size = 128;
@@ -72,11 +98,21 @@ public class PointFactory {
       private Builder() {
       }
 
+      /**
+       * Sets the <i>initial</i> size of the internal {@link Point} pool.
+       * @param size the initial size of the internal pool
+       * @return this {@link PointFactory.Builder}
+       */
       public Builder initialSize(final int size) {
          this.size = size;
          return this;
       }
 
+      /**
+       * Sets the <i>maximum</i> size of the internal {@link Point} pool.
+       * @param size the maximum size of the internal pool
+       * @return this {@link PointFactory.Builder}
+       */
       public Builder maximumSize(final int size) {
          this.maxSize = size;
          return this;

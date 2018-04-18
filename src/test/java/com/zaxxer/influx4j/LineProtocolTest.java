@@ -42,7 +42,7 @@ public class LineProtocolTest {
 
    @After
    public void shutdownFactory() {
-      pointFactory.close();
+      pointFactory.flush();
    }
 
    @Test(expected = IllegalStateException.class)
@@ -291,7 +291,7 @@ public class LineProtocolTest {
          Assert.assertEquals(tsString("testMeasurement2,chocolate=1,strawberry=2 boolean=f", timestamp), buffer2string(buffer));
       }
       finally {
-         factory.close();
+         factory.flush();
       }
    }
 

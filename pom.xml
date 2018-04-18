@@ -129,7 +129,7 @@
             <version>3.0.0</version>
             <configuration>
                <show>public</show>
-               <!-- excludePackageNames>com.zaxxer.sansorm.*</excludePackageNames -->
+               <excludePackageNames>com.zaxxer.influx4j.util.*</excludePackageNames>
                <attach>true</attach>
                <maxmemory>1024m</maxmemory>
             </configuration>
