@@ -26,7 +26,6 @@ Zero garbage means the JVM interrupts your performance critical code less.<sup>1
 <sub><sup>1</sup>&nbsp;Note: While influx4j generates zero garbage, *your application*, and *associated libraries* likely generate garbage that will still require collection.</sub>
 
 ## Usage
------------------------------------------------------------------------------------------------------------------------
 
 ### :factory: PointFactory
 Towards the goal of zero-garbage, *influx4j* employs a pooling scheme for ``Point`` instances, such that ``Point`` objects are recycled within the system.  This pool is contained within a factory for producing Points: ``PointFactory``.
