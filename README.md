@@ -48,7 +48,7 @@ PointFactory pointFactory =
                .maximumSize(8000)
                .build();
 ```
-The ``maximumSize`` should be tuned to somewhat larger than the maximum number of points generated per-second by your application.  That is, assuming the default "auto-flush" interval of one second.
+The ``maximumSize`` should be tuned to somewhat larger than the maximum number of points generated per-second by your application.  That is, assuming the default connection "auto-flush" interval of one second.
 
 The total memory consumed by the pool will be determined by the "high water mark" of usage.  Keep this in mind when setting the ``maximumSize``.  You *can* actually force the pool to empty by calling the ``flush()`` method, but know that doing so will therefore create garbage out of the contents.
 
