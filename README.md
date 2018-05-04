@@ -112,6 +112,56 @@ There are several important things to note about the ``copy()`` method:
  * The _**timestamp**_ of the source ``Point`` is copied (retained).
  * The copied point, ``point2`` in the example above, is a ``Point`` like any other, and therefore additional _**tags**_ and _**fields**_ may be added, and the _**timestamp**_ changed/updated via the standard methods.
 
+### :electric_plug: Connection
+An instance of ``InfluxDB`` represents a connection to the database. Similar to the ``PointFactory``, a ``Builder`` is used to configure and create an instance of ``InfluxDB``.
+
+A simple example construction via the ``Builder`` is shown here:
+```Java
+InfluxDB influxDB = InfluxDB.builder()
+         .setConnection("127.0.0.1", 8086, InfluxDB.Protocol.HTTP)
+         .setUsername("mueller")
+         .setPassword("gotcha")
+         .setDatabase("example")
+         .build();
+```
+:point_right: Note that while ``InfluxDB.Protocol.UDP`` is defined, UDP is currently not supported by the driver.
+
+The following configuration parameters are supported by the ``InfluxDB.Builder``:
+
+:cd: ``setDatabase(String database)`` <br>
+The name of the InfluxDB database that ``Point`` instances will be inserted into.
+
+:bust_in_silhouette: ``setUsername(String username)`` <br>
+The username used to authenticate to the InfluxDB server.
+
+:key: ``setPassword(String password`` <br>
+The password used to authenticate to the InfluxDB server.
+
+:clock3: ``setRetentionPolicy(String retentionPolicy)`` <br>
+The name of the retention policy to use.
+
+:loop: ``setConsistency(Consistency consistency)`` <br>
+The consistency setting of the connection.  One of:
+ * ``InfluxDB.Consistency.ALL``
+ * ``InfluxDB.Consistency.ANY``
+ * ``InfluxDB.Consistency.ONE``
+ * ``InfluxDB.Consistency.QUORUM``.
+
+:stopwatch: ``setPrecision(Precision precision)`` <br>
+The precision of timestamps persisted through the connection.  One of:
+ * ``InfluxDB.Precision.NANOSECOND``
+ * ``InfluxDB.Precision.MICROSECOND``
+ * ``InfluxDB.Precision.MILLISECOND``
+ * ``InfluxDB.Precision.SECOND``
+ * ``InfluxDB.Precision.MINUTE``
+ * ``InfluxDB.Precision.HOUR``
+
+:toilet: ``setAutoFlushPeriod(long periodMs)``
+The auto-flush period of the connection.  ``Point`` objects that are persisted via the ``write(Point point)`` method, are not written immediately, they are *queued* for writing asynchronously.  The auto-flush period defines how often queued points are written (flushed) to the connection.  The default value is one second (1000ms), and the minimum value is 100ms.
+
+<img src="https://emojipedia-us.s3.amazonaws.com/thumbs/160/emojipedia/132/spool-of-thread_1f9f5.png" width="16px"> ``setThreadFactory(ThreadFactory threadFactory)`` <br>
+An optional ``ThreadFactory`` used to create the auto-flush background thread.
+
 ------------------------------------------------------------------------------------------------------------------------------
 See the [InsertionTest](https://github.com/brettwooldridge/influx4j/blob/master/src/test/java/com/zaxxer/influx4j/InsertionTest.java) for example usage, until I have time to write full docs.
 
