@@ -159,8 +159,19 @@ The precision of timestamps persisted through the connection.  One of:
 :toilet: ``setAutoFlushPeriod(long periodMs)``
 The auto-flush period of the connection.  ``Point`` objects that are persisted via the ``write(Point point)`` method, are not written immediately, they are *queued* for writing asynchronously.  The auto-flush period defines how often queued points are written (flushed) to the connection.  The default value is one second (1000ms), and the minimum value is 100ms.
 
-<img src="https://emojipedia-us.s3.amazonaws.com/thumbs/160/emojipedia/132/spool-of-thread_1f9f5.png" width="16px"> ``setThreadFactory(ThreadFactory threadFactory)`` <br>
+<img src="https://emojipedia-us.s3.amazonaws.com/thumbs/160/emojipedia/132/spool-of-thread_1f9f5.png" height="24px" align="middle"> ``setThreadFactory(ThreadFactory threadFactory)`` <br>
 An optional ``ThreadFactory`` used to create the auto-flush background thread.
+
+#### Writing
+Writing a ``Point`` is simple, there is only one method: ``write(Point point)``.
+```Java
+Point point = pointFactory.createPoint("survey")
+         .tag("fruit", "apple")
+         .field("yummy", true)
+         .timestamp();
+
+influxDB.write(point);
+```
 
 ------------------------------------------------------------------------------------------------------------------------------
 See the [InsertionTest](https://github.com/brettwooldridge/influx4j/blob/master/src/test/java/com/zaxxer/influx4j/InsertionTest.java) for example usage, until I have time to write full docs.
