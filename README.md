@@ -162,7 +162,7 @@ The auto-flush period of the connection.  ``Point`` objects that are persisted v
 <img src="https://emojipedia-us.s3.amazonaws.com/thumbs/160/emojipedia/132/spool-of-thread_1f9f5.png" height="24px" align="middle"> ``setThreadFactory(ThreadFactory threadFactory)`` <br>
 An optional ``ThreadFactory`` used to create the auto-flush background thread.
 
-#### :pencil2: Writing
+#### :pencil2: Writing Points
 Writing a ``Point`` is simple, there is only one method: ``write(Point point)``.
 ```Java
 Point point = pointFactory.createPoint("survey")
