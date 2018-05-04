@@ -134,7 +134,7 @@ The name of the InfluxDB database that ``Point`` instances will be inserted into
 :bust_in_silhouette: ``setUsername(String username)`` <br>
 The username used to authenticate to the InfluxDB server.
 
-:key: ``setPassword(String password`` <br>
+:key: ``setPassword(String password)`` <br>
 The password used to authenticate to the InfluxDB server.
 
 :clock3: ``setRetentionPolicy(String retentionPolicy)`` <br>
