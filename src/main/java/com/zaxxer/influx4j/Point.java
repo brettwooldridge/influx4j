@@ -213,6 +213,10 @@ public class Point implements AutoCloseable {
       return null;
    }
 
+   public Long longField(final int index) {
+      return (index < longFieldIndex) ? longFields[i].value : null;
+   }
+
    /**
     * Get the value of the specified floating point double field as an auto-boxed {@link Double}.
     * If no double field was set on this {@link Point}, the return value will be {@code null}.
@@ -271,6 +275,80 @@ public class Point implements AutoCloseable {
          }
       }
       return null;
+   }
+
+   /**
+    * Get the type of the specified field.  This call is relatively expensive, so it is
+    * recommended to cache the result if frequent access is neccessary.
+    * @param field the name of the field
+    * @return the Class of the field, or {@code null}
+    */
+   public Class<?> getFieldType(final String field) {
+      if (longField(field) != null) return Long.class;
+      if (doubleField(field) != null) return Double.class;
+      if (stringField(field) != null) return String.class;
+      if (booleanField(field) != null) return Boolean.class;
+      return null;
+   }
+
+   /**
+    * Get the internal index of the specified long field.  This call is relatively
+    * expensive, so it is recommended to cache the result if frequent access is
+    * neccessary.  The index can be used to access the field more efficiently than
+    * calling {@link #longField(String)}.
+    * @param field the name of the long integer field
+    * @return the internal index of the long integer field value or -1
+    */
+   public int getLongFieldIndex(final String field) {
+      for (int i = 0; i < longFieldIndex; i++) {
+         if (field.equals(longFields[i].name)) return i;
+      }
+      return -1;
+   }
+
+   /**
+    * Get the internal index of the specified double field.  This call is relatively
+    * expensive, so it is recommended to cache the result if frequent access is
+    * neccessary.  The index can be used to access the field more efficiently than
+    * calling {@link #doubleField(String)}.
+    * @param field the name of the double field
+    * @return the internal index of the double field value or -1
+    */
+    public int getDoubleFieldIndex(final String field) {
+      for (int i = 0; i < doubleFieldIndex; i++) {
+         if (field.equals(doubleFields[i].name)) return i;
+      }
+      return -1;
+   }
+
+   /**
+    * Get the internal index of the specified String field.  This call is relatively
+    * expensive, so it is recommended to cache the result if frequent access is
+    * neccessary.  The index can be used to access the field more efficiently than
+    * calling {@link #stringField(String)}.
+    * @param field the name of the String field
+    * @return the internal index of the String field value or -1
+    */
+    public int getStringFieldIndex(final String field) {
+      for (int i = 0; i < stringFieldIndex; i++) {
+         if (field.equals(stringFields[i].name)) return i;
+      }
+      return -1;
+   }
+
+   /**
+    * Get the internal index of the specified boolean field.  This call is relatively
+    * expensive, so it is recommended to cache the result if frequent access is
+    * neccessary.  The index can be used to access the field more efficiently than
+    * calling {@link #booleanField(String)}.
+    * @param field the name of the boolean field
+    * @return the internal index of the boolean field value or -1
+    */
+    public int getBooleanFieldIndex(final String field) {
+      for (int i = 0; i < booleanFieldIndex; i++) {
+         if (field.equals(boolFields[i].name)) return i;
+      }
+      return -1;
    }
 
    /**
