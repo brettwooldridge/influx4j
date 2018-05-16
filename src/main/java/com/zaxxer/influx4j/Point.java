@@ -213,8 +213,15 @@ public class Point implements AutoCloseable {
       return null;
    }
 
-   public Long longField(final int index) {
-      return (index < longFieldIndex) ? longFields[i].value : null;
+   /**
+    * Get the value of the specified long integer field, by internal index (see {@link #getLongFieldIndex(String)}),
+    * as an auto-boxed {@link Long}.  If no such long integer field was set on this {@link Point}, the return value
+    * will be {@code null}.
+    * @param index the internal index of the long integer field
+    * @return the long integer field value or {@code null}
+    */
+    public Long longField(final int index) {
+      return (index < longFieldIndex) ? longFields[index].value : null;
    }
 
    /**
@@ -233,6 +240,17 @@ public class Point implements AutoCloseable {
    }
 
    /**
+    * Get the value of the specified double field, by internal index (see {@link #getDoubleFieldIndex(String)}),
+    * as an auto-boxed {@link Double}.  If no such double field was set on this {@link Point}, the return value
+    * will be {@code null}.
+    * @param index the internal index of the double field
+    * @return the double field value or {@code null}
+    */
+    public Double doubleField(final int index) {
+      return (index < doubleFieldIndex) ? doubleFields[index].value : null;
+   }
+
+   /**
     * Get the value of the specified boolean field as an auto-boxed {@link Boolean}.  If no
     * boolean field was set on this {@link Point}, the return value will be {@code null}.
     * @param field the name of the boolean field
@@ -248,6 +266,17 @@ public class Point implements AutoCloseable {
    }
 
    /**
+    * Get the value of the specified boolean field, by internal index (see {@link #getBooleanFieldIndex(String)}),
+    * as an auto-boxed {@link Boolean}.  If no such boolean field was set on this {@link Point}, the return value
+    * will be {@code null}.
+    * @param index the internal index of the boolean field
+    * @return the boolean field value or {@code null}
+    */
+    public Boolean booleanField(final int index) {
+      return (index < booleanFieldIndex) ? boolFields[index].value : null;
+   }
+
+   /**
     * Get the value of the specified string field.  If no string field was set on this
     * {@link Point}, the return value will be {@code null}.
     * @param field the name of the string field
@@ -260,6 +289,16 @@ public class Point implements AutoCloseable {
          }
       }
       return null;
+   }
+
+   /**
+    * Get the value of the specified String field, by internal index (see {@link #getStringFieldIndex(String)}).
+    * If no such String field was set on this {@link Point}, the return value will be {@code null}.
+    * @param index the internal index of the String field
+    * @return the String field value or {@code null}
+    */
+    public String stringField(final int index) {
+      return (index < stringFieldIndex) ? stringFields[index].value : null;
    }
 
    /**
@@ -279,7 +318,7 @@ public class Point implements AutoCloseable {
 
    /**
     * Get the type of the specified field.  This call is relatively expensive, so it is
-    * recommended to cache the result if frequent access is neccessary.
+    * recommended that the result be cached if frequent access is neccessary.
     * @param field the name of the field
     * @return the Class of the field, or {@code null}
     */
@@ -293,7 +332,7 @@ public class Point implements AutoCloseable {
 
    /**
     * Get the internal index of the specified long field.  This call is relatively
-    * expensive, so it is recommended to cache the result if frequent access is
+    * expensive, so it is recommended that the result be cached if frequent access is
     * neccessary.  The index can be used to access the field more efficiently than
     * calling {@link #longField(String)}.
     * @param field the name of the long integer field
@@ -308,7 +347,7 @@ public class Point implements AutoCloseable {
 
    /**
     * Get the internal index of the specified double field.  This call is relatively
-    * expensive, so it is recommended to cache the result if frequent access is
+    * expensive, so it is recommended that the result be cached if frequent access is
     * neccessary.  The index can be used to access the field more efficiently than
     * calling {@link #doubleField(String)}.
     * @param field the name of the double field
@@ -323,7 +362,7 @@ public class Point implements AutoCloseable {
 
    /**
     * Get the internal index of the specified String field.  This call is relatively
-    * expensive, so it is recommended to cache the result if frequent access is
+    * expensive, so it is recommended that the result be cached if frequent access is
     * neccessary.  The index can be used to access the field more efficiently than
     * calling {@link #stringField(String)}.
     * @param field the name of the String field
@@ -338,7 +377,7 @@ public class Point implements AutoCloseable {
 
    /**
     * Get the internal index of the specified boolean field.  This call is relatively
-    * expensive, so it is recommended to cache the result if frequent access is
+    * expensive, so it is recommended that the result be cached if frequent access is
     * neccessary.  The index can be used to access the field more efficiently than
     * calling {@link #booleanField(String)}.
     * @param field the name of the boolean field
