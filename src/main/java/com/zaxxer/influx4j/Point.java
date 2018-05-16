@@ -470,6 +470,47 @@ public class Point implements AutoCloseable {
       return StandardCharsets.UTF_8.decode(buf).toString();
    }
 
+   public String toJson() {
+      final StringBuilder sb = new StringBuilder(256)
+         .append("{")
+         .append("\"measurement\":\"")
+         .append(measurement.replace("\"", "\\\""))
+         .append("\", \"timestamp\":")
+         .append(Precision.MILLISECOND.convert(timestamp, timeUnit))
+         .append(", \"tags\": {");
+      for (int i = 0; i < tagIndex; i++) {
+         sb.append("\"").append(tags[i].name.replaceAll("[^\\w]", "_")).append("\":");
+         sb.append("\"").append(tags[i].value.replaceAll("\"", "\\\"")).append("\",");
+      }
+      if (tagIndex > 0) sb.setLength(sb.length() - 1);
+      boolean fieldWritten = false;
+      sb.append("}, \"fields\": {");
+      for (int i = 0; i < stringFieldIndex; i++) {
+         sb.append("\"").append(stringFields[i].name.replaceAll("[^\\w]", "_")).append("\":");
+         sb.append("\"").append(stringFields[i].value.replaceAll("\"", "\\\"")).append("\",");
+         fieldWritten = true;
+      }
+      for (int i = 0; i < longFieldIndex; i++) {
+         sb.append("\"").append(longFields[i].name.replaceAll("[^\\w]", "_")).append("\":");
+         sb.append(longFields[i].value).append(",");
+         fieldWritten = true;
+      }
+      for (int i = 0; i < doubleFieldIndex; i++) {
+         sb.append("\"").append(doubleFields[i].name.replaceAll("[^\\w]", "_")).append("\":");
+         sb.append(doubleFields[i].value).append(",");
+         fieldWritten = true;
+      }
+      for (int i = 0; i < booleanFieldIndex; i++) {
+         sb.append("\"").append(boolFields[i].name.replaceAll("[^\\w]", "_")).append("\":");
+         sb.append(boolFields[i].value).append(",");
+         fieldWritten = true;
+      }
+      if (fieldWritten) sb.setLength(sb.length() - 1);
+      sb.append("}");
+      sb.append("}");
+      return sb.toString();
+   }
+
    void write(final ByteBuffer buffer, final Precision precision) {
       final int fieldCount = longFieldIndex + booleanFieldIndex + stringFieldIndex + doubleFieldIndex;
 

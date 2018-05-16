@@ -295,6 +295,22 @@ public class LineProtocolTest {
       }
    }
 
+   @Test
+   public void testJsonSerialization() {
+      final long timestamp = 1526493357619L;
+      final String json = pointFactory.createPoint("testMeasurement")
+            .tag("chocolate", "1")
+            .tag("cho-co late", "stripme")
+            .field("string", "This is a test")
+            .field("long", Long.MIN_VALUE)
+            .field("boolean", true)
+            .field("com,ma", 1)
+            .timestamp(timestamp, TimeUnit.MILLISECONDS)
+            .toJson();
+
+      Assert.assertEquals("{\"measurement\":\"testMeasurement\", \"timestamp\":1526493357619, \"tags\": {\"chocolate\":\"1\",\"cho_co_late\":\"stripme\"}, \"fields\": {\"string\":\"This is a test\",\"long\":-9223372036854775808,\"com_ma\":1,\"boolean\":true}}", json);
+   }
+
    private String buffer2string(final ByteBuffer buffer) {
       return new String(buffer.array(), 0, buffer.position());
    }
