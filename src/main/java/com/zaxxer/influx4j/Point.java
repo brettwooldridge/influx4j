@@ -351,6 +351,22 @@ public class Point implements AutoCloseable {
    }
 
    /**
+    * Get the number of tags currently set on this {@link Point}.
+    * @return the number of tags currently set
+    */
+   public int getTagCount() {
+      return tagIndex;
+   }
+
+   /**
+    * Get the number of fields currently set on this {@link Point}.
+    * @return the number of fields currently set
+    */
+   public int getFieldCount() {
+      return longFieldIndex + doubleFieldIndex + booleanFieldIndex + stringFieldIndex;
+   }
+
+   /**
     * Get the internal index of the specified long field.  This call is relatively
     * expensive, so it is recommended that the result be cached if frequent access is
     * neccessary.  The index can be used to access the field more efficiently than
