@@ -199,6 +199,26 @@ public class Point implements AutoCloseable {
    }
 
    /**
+    * Remove a tag from this {@link Point}.
+    * @param tag the name of the tag to remove
+    * @return this {@link Point}
+    */
+   public Point removeTag(final String tag) {
+      for (int i = 0; i < tagIndex; i++) {
+         if (tag.equals(tags[i].name)) {
+            if (tagIndex > 1) {
+               final StringPair removed = tags[i];
+               System.arraycopy(tags, i + 1, tags, i, tagIndex - i - 1);
+               tags[tagIndex - 1] = removed;
+            }
+            --tagIndex;
+            break;
+         }
+      }
+      return this;
+   }
+
+   /**
     * Get the value of the specified long integer field as an auto-boxed {@link Long}.  If no
     * long integer field was set on this {@link Point}, the return value will be {@code null}.
     * @param field the name of the long integer field
