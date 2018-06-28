@@ -115,7 +115,8 @@ public class InfluxDB implements AutoCloseable {
       }
    }
 
-   public static final int MAXIMUM_SERIALIZED_POINT_SIZE = Integer.getInteger("com.zaxxer.influx4j.maxSerializedPointSize", 32 * 1024);
+   public static final int MAXIMUM_SERIALIZED_POINT_SIZE;
+   private static final int MAXIMUM_POINT_BATCH_SIZE;
    private static final int SEND_BUFFER_SIZE;
 
    private static final ConcurrentHashMap<URL, SocketConnection> CONNECTIONS = new ConcurrentHashMap<>();
@@ -128,6 +129,10 @@ public class InfluxDB implements AutoCloseable {
    private final Protocol protocol;
 
    static {
+
+      MAXIMUM_SERIALIZED_POINT_SIZE = Integer.getInteger("com.zaxxer.influx4j.maxSerializedPointSize", 32 * 1024);
+      MAXIMUM_POINT_BATCH_SIZE = Integer.getInteger("com.zaxxer.influx4j.maxPointBatchSize", 5000);
+
       int sendBuffSize = Integer.getInteger("com.zaxxer.influx4j.sndrcvBufferSize", 0);
       try (final Socket tmpSocket = new Socket()) {
          if (sendBuffSize == 0) {
@@ -509,13 +514,14 @@ public class InfluxDB implements AutoCloseable {
             while (!shutdown) {
                final long startNs = nanoTime();
 
+               int batchSize = 0;
                do {
                   try (final Point point = pointQueue.poll()) {
                      if (point == null) break;
 
                      point.write(buffer, precision);
                   }
-               } while (buffer.remaining() >= MAXIMUM_SERIALIZED_POINT_SIZE);
+               } while (buffer.remaining() >= MAXIMUM_SERIALIZED_POINT_SIZE && ++batchSize < MAXIMUM_POINT_BATCH_SIZE);
 
                if (buffer.position() > 0) {
                   final boolean again = buffer.remaining() < MAXIMUM_SERIALIZED_POINT_SIZE;
