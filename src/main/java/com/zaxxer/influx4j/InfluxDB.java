@@ -29,6 +29,8 @@ import java.net.Socket;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadFactory;
@@ -40,6 +42,9 @@ import java.util.logging.Logger;
 import com.zaxxer.influx4j.util.DaemonThreadFactory;
 
 import okhttp3.Call;
+import okhttp3.Cookie;
+import okhttp3.CookieJar;
+import okhttp3.HttpUrl;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -457,7 +462,24 @@ public class InfluxDB implements AutoCloseable {
          this.pointQueue = new MpscArrayQueue<>(64 * 1024);
          this.shutdownSemaphore = new Semaphore(1);
          this.shutdownSemaphore.acquireUninterruptibly();
-         this.client = new OkHttpClient();
+         this.client = new OkHttpClient.Builder()
+            .retryOnConnectionFailure(true)
+            .connectTimeout(5, SECONDS)
+            .readTimeout(30, SECONDS)
+            .cookieJar(new CookieJar() {
+               private List<Cookie> cookies;
+
+               public void saveFromResponse(HttpUrl url, List<Cookie> cookies) {
+                  this.cookies =  cookies;
+               }
+
+               public List<Cookie> loadForRequest(HttpUrl url) {
+                  if (cookies != null)
+                     return cookies;
+                  return new ArrayList<>();
+               }
+            })
+            .build();
 
          final Thread flusher = threadFactory.newThread(this);
          flusher.setDaemon(true);
@@ -550,13 +572,13 @@ public class InfluxDB implements AutoCloseable {
          final Call call = httpCall.clone();
          try (Response response = call.execute()) {
             if (!response.isSuccessful()) {
-               // TODO: What? Log? Pretty spammy...
-               LOGGER.warning("Error persisting points.  Response code: " + response.code() + ", message " + response.message());
+               // TODO: What? Log? Potentially spammy...
+               LOGGER.severe("Error persisting points.  Response code: " + response.code() + ", message " + response.message());
             }
          }
          catch (final IOException io) {
-            // TODO: What? Log? Pretty spammy...
-            LOGGER.warning("Exception persisting points.  Message: " + io.getLocalizedMessage());
+            // TODO: What? Log? Potentially spammy...
+            LOGGER.log(Level.SEVERE, "Exception persisting points.  Message: " + io.getLocalizedMessage(), io);
          }
       }
    }
