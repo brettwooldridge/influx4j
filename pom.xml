@@ -3,7 +3,7 @@
 
    <groupId>com.zaxxer</groupId>
    <artifactId>influx4j</artifactId>
-   <version>1.13</version>
+   <version>1.14-SNAPSHOT</version>
    <packaging>jar</packaging>
 
    <name>influx4j</name>
