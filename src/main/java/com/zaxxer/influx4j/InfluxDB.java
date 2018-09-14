@@ -148,7 +148,7 @@ public class InfluxDB implements AutoCloseable {
          // nothing
       }
       finally {
-         SEND_BUFFER_SIZE = sendBuffSize;
+         SEND_BUFFER_SIZE = Math.max(1024 * 1024, sendBuffSize);
       }
    }
 
@@ -535,19 +535,24 @@ public class InfluxDB implements AutoCloseable {
          try {
             while (!shutdown) {
                final long startNs = nanoTime();
+               final boolean debug = LOGGER.isLoggable(Level.FINE);
 
                int batchSize = 0;
                do {
                   try (final Point point = pointQueue.poll()) {
                      if (point == null) break;
 
+                     if (debug && batchSize == 0) LOGGER.fine("First point in batch " + point);
                      point.write(buffer, precision);
                   }
                } while (buffer.remaining() >= MAXIMUM_SERIALIZED_POINT_SIZE && ++batchSize < MAXIMUM_POINT_BATCH_SIZE);
 
                if (buffer.position() > 0) {
                   final boolean again = buffer.remaining() < MAXIMUM_SERIALIZED_POINT_SIZE;
+
                   writeBuffers(httpCall);
+                  if (debug) LOGGER.fine("InfluxDB HTTP write time: " + TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNs) + "ms");
+
                   if (again) {
                      // skip parking below, we still have more points to process but just ran out of buffer
                      continue;
