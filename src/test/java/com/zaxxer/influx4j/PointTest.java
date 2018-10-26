@@ -16,8 +16,6 @@
 
 package com.zaxxer.influx4j;
 
-import java.util.concurrent.TimeUnit;
-
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
