@@ -30,15 +30,23 @@ public class InsertionTest {
    private PointFactory pointFactory;
    private InfluxDB influxDB;
 
+   private String host = "127.0.0.1";
+   private int port = 9086;
+   private InfluxDB.Protocol protocol = InfluxDB.Protocol.HTTP;
+   private String username = "influx4j";
+   private String password = "influx4j";
+   private String database = "influx4j";
+
+
    @Before
    public void createFactory() throws Exception {
       pointFactory = PointFactory.builder().build();
 
       influxDB = InfluxDB.builder()
-         .setConnection("127.0.0.1", 9086, InfluxDB.Protocol.HTTP)
-         .setUsername("influx4j")
-         .setPassword("influx4j")
-         .setDatabase("influx4j")
+         .setConnection(host, port, protocol)
+         .setUsername(username)
+         .setPassword(password)
+         .setDatabase(database)
          .setThreadFactory(new DaemonThreadFactory("Flusher"))
          .build();
    }
@@ -61,7 +69,7 @@ public class InsertionTest {
 
 
       final String command = "SELECT fruit, yummy FROM testSingleInsert";
-      final Query query = new Query(command, "influx4j");
+      final Query query = new Query(command, database);
 
       String result = influxDB.query(query);
       Assert.assertNotNull(result);
@@ -84,7 +92,7 @@ public class InsertionTest {
 
 
       final String command = "SELECT fruit, count FROM testMultipleInserts";
-      final Query query = new Query(command, "influx4j");
+      final Query query = new Query(command, database);
 
       String result = influxDB.query(query);
       Assert.assertNotNull(result);
