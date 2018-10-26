@@ -39,6 +39,8 @@ import java.util.concurrent.locks.LockSupport;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.jctools.queues.MpscArrayQueue;
+
 import com.zaxxer.influx4j.util.DaemonThreadFactory;
 
 import okhttp3.Call;
@@ -51,8 +53,6 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 import okio.BufferedSink;
-
-import org.jctools.queues.MpscArrayQueue;
 
 
 /**
@@ -182,6 +182,26 @@ public class InfluxDB implements AutoCloseable {
       connection.write(point);
    }
 
+
+   /**
+    * Query a {@link Query} to the database
+    *
+    * @param query the query to get from the database
+    * @return the query result as String
+    */
+   public String query(Query query) {
+		try {
+			String q = "db=" + query.getDatabase()
+						+ "&u=" + URLEncoder.encode(username, "utf8")
+						+ "&p=" + URLEncoder.encode(password, "utf8")
+						+ "&q=" + query.getCommandWithUrlEncoded();
+
+			return executeCommndWithOkHttp(q);
+		} catch (final Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
    /**
     * Close the connection to the database.
     */
@@ -271,6 +291,27 @@ public class InfluxDB implements AutoCloseable {
       else {
          return "Unexpected end-of-stream";
       }
+   }
+
+   private String executeCommndWithOkHttp(String query) {
+	   try {
+		   final URL uri = new URL(protocol.toString(), host, port, "/query?" + query);
+
+		   OkHttpClient client = new OkHttpClient.Builder().build();
+
+		   Request request = new Request.Builder()
+				   				.url(uri)
+				   				.build();
+
+		   Response response = client.newCall(request).execute();
+
+
+		   return response.body().string();
+	   } catch (final IOException e) {
+		   LOGGER.log(Level.SEVERE, "InfluxDB#executeCommndWithOkHttp; Unexpected Exception", e);
+
+		   throw new RuntimeException(e);
+	   }
    }
 
    /**
@@ -469,10 +510,12 @@ public class InfluxDB implements AutoCloseable {
             .cookieJar(new CookieJar() {
                private List<Cookie> cookies;
 
+               @Override
                public void saveFromResponse(HttpUrl url, List<Cookie> cookies) {
                   this.cookies =  cookies;
                }
 
+               @Override
                public List<Cookie> loadForRequest(HttpUrl url) {
                   if (cookies != null)
                      return cookies;

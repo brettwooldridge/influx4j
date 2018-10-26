@@ -16,11 +16,12 @@
 
 package com.zaxxer.influx4j;
 
+import java.util.concurrent.TimeUnit;
+
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.util.concurrent.TimeUnit;
 
 import com.zaxxer.influx4j.util.DaemonThreadFactory;
 
@@ -58,7 +59,13 @@ public class InsertionTest {
 
       TimeUnit.SECONDS.sleep(1); // to allow async flush to run before querying
 
-      // TODO query and verify
+
+      final String command = "SELECT fruit, yummy FROM testSingleInsert";
+      final Query query = new Query(command, "influx4j");
+
+      String result = influxDB.query(query);
+      Assert.assertNotNull(result);
+      Assert.assertTrue(result.startsWith("{\"results\":[{\"statement_id\":0,\"series\":[{\"name\":\"testSingleInsert\",\"columns\":[\"time\",\"fruit\",\"yummy\"],\"values\":"));
    }
 
    @Test
@@ -75,6 +82,12 @@ public class InsertionTest {
 
       TimeUnit.SECONDS.sleep(1); // to allow async flush to run before querying
 
-      // TODO query and verify
+
+      final String command = "SELECT fruit, count FROM testMultipleInserts";
+      final Query query = new Query(command, "influx4j");
+
+      String result = influxDB.query(query);
+      Assert.assertNotNull(result);
+      Assert.assertTrue(result.startsWith("{\"results\":[{\"statement_id\":0,\"series\":[{\"name\":\"testMultipleInserts\",\"columns\":[\"time\",\"fruit\",\"count\"],\"values\":"));
    }
 }
