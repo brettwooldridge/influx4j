@@ -21,9 +21,6 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.Socket;
 import java.net.URL;
@@ -46,6 +43,7 @@ import com.zaxxer.influx4j.util.DaemonThreadFactory;
 import okhttp3.Call;
 import okhttp3.Cookie;
 import okhttp3.CookieJar;
+import okhttp3.Credentials;
 import okhttp3.HttpUrl;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
@@ -127,11 +125,8 @@ public class InfluxDB implements AutoCloseable {
    private static final ConcurrentHashMap<URL, SocketConnection> CONNECTIONS = new ConcurrentHashMap<>();
 
    private final SocketConnection connection;
-   private final String host;
-   private final String username;
-   private final String password;
-   private final int port;
-   private final Protocol protocol;
+   private final String baseUrl;
+   private final String credentionals;
 
    static {
 
@@ -153,17 +148,11 @@ public class InfluxDB implements AutoCloseable {
    }
 
    private InfluxDB(final SocketConnection connection,
-                    final String host,
-                    final int port,
-                    final Protocol protocol,
-                    final String username,
-                    final String password) {
+                    final String baseUrl,
+                    final String credentionals) {
       this.connection = connection;
-      this.host = host;
-      this.port = port;
-      this.protocol = protocol;
-      this.username = username;
-      this.password = password;
+      this.baseUrl = baseUrl;
+      this.credentionals = credentionals;
    }
 
    /*****************************************************************************************
@@ -191,12 +180,9 @@ public class InfluxDB implements AutoCloseable {
     */
    public String query(Query query) {
 		try {
-			String q = "db=" + query.getDatabase()
-						+ "&u=" + URLEncoder.encode(username, "utf8")
-						+ "&p=" + URLEncoder.encode(password, "utf8")
-						+ "&q=" + query.getCommandWithUrlEncoded();
+			String q = "db=" + query.getDatabase() + "&q=" + query.getCommandWithUrlEncoded();
 
-			return executeCommndWithOkHttp(q);
+			return executeQuery(q);
 		} catch (final Exception e) {
 			throw new RuntimeException(e);
 		}
@@ -215,9 +201,7 @@ public class InfluxDB implements AutoCloseable {
    public String createDatabase(final String name) {
       try {
          final String query = "db="
-         + "&u=" + URLEncoder.encode(username, "utf8")
-         + "&p=" + URLEncoder.encode(password, "utf8")
-         + "&q=create+database+" + URLEncoder.encode(name, "utf8");
+    		 	+ "&q=create+database+" + URLEncoder.encode(name, "utf8");
 
          return executeCommand(query);
       }
@@ -247,8 +231,6 @@ public class InfluxDB implements AutoCloseable {
       final boolean isDefault) {
       try {
          String query = "db="
-            + "&u=" + URLEncoder.encode(username, "utf8")
-            + "&p=" + URLEncoder.encode(password, "utf8")
             + "&q=CREATE+RETENTION+POLICY+%22" + URLEncoder.encode(name, "utf8") + "%22"
             + "+ON+%22" + URLEncoder.encode(dbName, "utf8") + "%22"
             + "+DURATION+" + duration + durationUnit.precision
@@ -268,39 +250,35 @@ public class InfluxDB implements AutoCloseable {
       }
    }
 
+
+   private static URL createURL(URL baseUrl, String path, final String... queryParameters) {
+       try {
+          String url = baseUrl.toString() + path;
+
+          if (queryParameters.length > 0) {
+        	  url = url + "?" + String.join("&", queryParameters);
+          }
+
+          return new URL(url);
+       }
+       catch (final Exception e) {
+          throw new RuntimeException(e);
+       }
+    }
+
    private String executeCommand(String query) throws IOException, MalformedURLException {
-      final URL uri = new URL(protocol.toString(), host, port, "/query?" + query);
-      final HttpURLConnection httpConnection = (HttpURLConnection) uri.openConnection();
-      httpConnection.setConnectTimeout((int) SECONDS.toMillis(5));
-      httpConnection.setRequestMethod("POST");
-      httpConnection.setRequestProperty("Host", InetAddress.getLocalHost().getHostName());
-      httpConnection.setRequestProperty("Content-Length", "0");
-
-      final InputStream is = httpConnection.getInputStream();
-      final byte[] buffer = new byte[512];
-      final int read = is.read(buffer);
-      if (read < 12) {
-         final String response = new String(buffer, 0, read);
-         final int status = Integer.valueOf(response.substring(9, 12));
-         if (status > 299) {
-            return response;
-         }
-
-         return null;
-      }
-      else {
-         return "Unexpected end-of-stream";
-      }
-   }
-
-   private String executeCommndWithOkHttp(String query) {
 	   try {
-		   final URL uri = new URL(protocol.toString(), host, port, "/query?" + query);
 
-		   OkHttpClient client = new OkHttpClient.Builder().build();
+		   final String url = this.baseUrl + "/query?" + query;
+
+		   OkHttpClient client = new OkHttpClient.Builder()
+				   						.connectTimeout(5, SECONDS)
+				   						.build();
 
 		   Request request = new Request.Builder()
-				   				.url(uri)
+				   				.url(url)
+				   				.post(null)
+				   				.addHeader("Authorization", this.credentionals)
 				   				.build();
 
 		   Response response = client.newCall(request).execute();
@@ -308,7 +286,30 @@ public class InfluxDB implements AutoCloseable {
 
 		   return response.body().string();
 	   } catch (final IOException e) {
-		   LOGGER.log(Level.SEVERE, "InfluxDB#executeCommndWithOkHttp; Unexpected Exception", e);
+		   LOGGER.log(Level.SEVERE, "InfluxDB#executeCommand; Unexpected Exception", e);
+
+		   throw new RuntimeException(e);
+	   }
+   }
+
+   private String executeQuery(String query) {
+	   try {
+		   final String url = this.baseUrl + "/query?" + query;
+
+		   OkHttpClient client = new OkHttpClient.Builder()
+				   						.build();
+
+		   Request request = new Request.Builder()
+				   				.url(url)
+				   				.addHeader("Authorization", this.credentionals)
+				   				.build();
+
+		   Response response = client.newCall(request).execute();
+
+
+		   return response.body().string();
+	   } catch (final IOException e) {
+		   LOGGER.log(Level.SEVERE, "InfluxDB#executeQuery; Unexpected Exception", e);
 
 		   throw new RuntimeException(e);
 	   }
@@ -331,11 +332,10 @@ public class InfluxDB implements AutoCloseable {
       private String retentionPolicy = "autogen";
       private String database;
       private String username;
-      private String password = "";
-      private String host = "localhost";
-      private int port = 8086;
+      private String password;
+      private String credentials;
       private long autoFlushPeriod = SECONDS.toNanos(1);
-      private Protocol protocol = Protocol.HTTP;
+      private URL baseURL;
       private Consistency consistency = Consistency.ONE;
       private Precision precision = Precision.NANOSECOND;
       private ThreadFactory threadFactory;
@@ -344,9 +344,12 @@ public class InfluxDB implements AutoCloseable {
       }
 
       public Builder setConnection(final String host, final int port, final Protocol protocol) {
-         this.host = host;
-         this.port = port;
-         this.protocol = protocol;
+         try {
+			this.baseURL = new URL(protocol.toString(), host, port, "");
+		} catch (MalformedURLException e) {
+			e.printStackTrace();
+		}
+
          return this;
       }
 
@@ -395,8 +398,12 @@ public class InfluxDB implements AutoCloseable {
 
       public InfluxDB build() {
          if (username == null) throw new IllegalStateException("Influx 'username' must be specified.");
-         if (threadFactory == null) threadFactory = new DaemonThreadFactory("InfluxDB flusher " + host + ":" + port + "-" + database);
+         if (password == null) throw new IllegalStateException("Influx 'password' must be specified.");
+         if (threadFactory == null) threadFactory = new DaemonThreadFactory("InfluxDB flusher " + baseURL.getHost() + ":" + baseURL.getPort() + "-" + database);
 
+         this.credentials = Credentials.basic(username, password);
+
+         Protocol protocol = Protocol.valueOf(this.baseURL.getProtocol().toUpperCase());
          try {
             SocketConnection connection = null;
             switch (protocol) {
@@ -406,12 +413,16 @@ public class InfluxDB implements AutoCloseable {
                      throw new RuntimeException("Access denied to user '" + username + "'.");
                   }
 
+
                   connection = CONNECTIONS.computeIfAbsent(
-                     createBaseURL("/write",
+                     InfluxDB.createURL(this.baseURL,
+                    		 	   "/write",
+                    		 	   "db=" + database,
                                    "consistency=" + consistency,
                                    "precision=" + precision,
                                    "rp=" + URLEncoder.encode(retentionPolicy, "utf8")),
                                    this::createConnection);
+
                   break;
                }
                case UDP: {
@@ -426,7 +437,7 @@ public class InfluxDB implements AutoCloseable {
                   throw new IllegalArgumentException("Unknown protocol: " + protocol);
             }
 
-            return new InfluxDB(connection, host, port, protocol, username, password);
+            return new InfluxDB(connection, this.baseURL.toString(), credentials);
          }
          catch (final IOException e) {
             throw new RuntimeException(e);
@@ -435,7 +446,7 @@ public class InfluxDB implements AutoCloseable {
 
       private SocketConnection createConnection(final URL url) {
          try {
-            return new SocketConnection(url, precision, autoFlushPeriod, threadFactory);
+            return new SocketConnection(url, credentials, precision, autoFlushPeriod, threadFactory);
          }
          catch (final Exception e) {
             throw new RuntimeException(e);
@@ -443,37 +454,31 @@ public class InfluxDB implements AutoCloseable {
       }
 
       boolean validateConnection() throws IOException {
-         final URL url = createBaseURL("/query", "q=" + URLEncoder.encode("SHOW DATABASES", "utf8"));
-         final HttpURLConnection httpConnection = (HttpURLConnection) url.openConnection();
-         httpConnection.setReadTimeout((int) SECONDS.toMillis(5));
-         httpConnection.setConnectTimeout((int) SECONDS.toMillis(5));
-         httpConnection.setRequestProperty("Host", InetAddress.getLocalHost().getHostName());
+    	 final URL url = InfluxDB.createURL(this.baseURL, "/query", "q=" + URLEncoder.encode("SHOW DATABASES", "utf8"));
 
-         httpConnection.getContent();
-         final int status = httpConnection.getResponseCode();
+    	 OkHttpClient client = new OkHttpClient.Builder()
+    			 					.readTimeout(5, TimeUnit.SECONDS)
+    			 					.connectTimeout(5, TimeUnit.SECONDS)
+    			 					.build();
+
+    	 Request request = new Request.Builder()
+    			 				.url(url.toString())
+    			 				.addHeader("Authorization", this.credentials)
+    			 				.build();
+
+    	 Call call = client.newCall(request);
+
+    	 Response response = call.execute();
+
+    	 final int status = response.code();
+
          if (status < 300) {
             return true;
          }
          else if (status == 401) {
             return false;
          }
-         throw new IOException("Unexpected end-of-stream during connection validation");
-      }
-
-      private URL createBaseURL(final String path, final String... queryParameters) {
-         try {
-            String query =
-               (database != null ? "db=" + URLEncoder.encode(database, "utf8") + "&" : "") +
-               "u=" + (username != null ? URLEncoder.encode(username, "utf8") : "") +
-               "&p=" + (password != null ? URLEncoder.encode(password, "utf8") : "");
-
-            query = query + "&" + String.join("&", queryParameters);
-
-            return new URL(protocol.toString(), host, port, path + "?" + query);
-         }
-         catch (final Exception e) {
-            throw new RuntimeException(e);
-         }
+         throw new IOException("Unexpected response during connection validation");
       }
    }
 
@@ -485,19 +490,21 @@ public class InfluxDB implements AutoCloseable {
       private static final MediaType MEDIA_TYPE_TEXT = MediaType.parse("text/plain; charset=utf-8");
 
       private final OkHttpClient client;
-      private final String localhost = InetAddress.getLocalHost().getHostName();
       private final Semaphore shutdownSemaphore;
       private final Precision precision;
       private final MpscArrayQueue<Point> pointQueue;
       private final URL url;
+      private final String credentials;
       private final long autoFlushPeriod;
       private volatile boolean shutdown;
 
       SocketConnection(final URL url,
+    		  		   final String credentials,
                        final Precision precision,
                        final long autoFlushPeriod,
                        final ThreadFactory threadFactory) throws IOException {
          this.url = url;
+         this.credentials = credentials;
          this.precision = precision;
          this.autoFlushPeriod = autoFlushPeriod;
          this.pointQueue = new MpscArrayQueue<>(64 * 1024);
@@ -571,6 +578,7 @@ public class InfluxDB implements AutoCloseable {
          final Request request = new Request.Builder()
             .url(url)
             .post(requestBody)
+            .addHeader("Authorization", credentials)
             .build();
 
          final Call httpCall = client.newCall(request);
