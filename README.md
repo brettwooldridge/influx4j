@@ -25,7 +25,6 @@ Zero garbage means the JVM interrupts your performance critical code less.<sup>1
 
 <sub><sup>1</sup>&nbsp;Note: While influx4j generates zero garbage, *your application*, and *associated libraries* likely generate garbage that will still require collection.</sub>
 
-:warning: This driver currently only supports *write-only* operation to InfluxDB, where performance is critical.  I *do* intend to add query support, but the schedule for doing so is currently uncommitted.  The official InfluxDB-java driver may be used in concert with *influx4j* for query execution.
 
 ## Usage
 
