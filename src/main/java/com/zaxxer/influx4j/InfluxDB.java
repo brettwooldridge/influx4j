@@ -36,8 +36,6 @@ import java.util.concurrent.locks.LockSupport;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.jctools.queues.MpscArrayQueue;
-
 import com.zaxxer.influx4j.util.DaemonThreadFactory;
 
 import okhttp3.Call;
@@ -51,6 +49,8 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 import okio.BufferedSink;
+
+import org.jctools.queues.MpscArrayQueue;
 
 
 /**
@@ -178,9 +178,9 @@ public class InfluxDB implements AutoCloseable {
     * @param query the query to get from the database
     * @return the query result as String
     */
-   public String query(Query query) {
+   public String query(final Query query) {
 		try {
-			String q = "db=" + query.getDatabase() + "&q=" + query.getCommandWithUrlEncoded();
+			final String q = "db=" + query.getDatabase() + "&q=" + query.getCommandWithUrlEncoded();
 
 			return executeQuery(q);
 		} catch (final Exception e) {
@@ -266,51 +266,45 @@ public class InfluxDB implements AutoCloseable {
        }
     }
 
-   private String executeCommand(String query) throws IOException, MalformedURLException {
+   private String executeCommand(final String query) throws IOException, MalformedURLException {
 	   try {
-
 		   final String url = this.baseUrl + "/query?" + query;
 
-		   OkHttpClient client = new OkHttpClient.Builder()
-				   						.connectTimeout(5, SECONDS)
-				   						.build();
+		   final OkHttpClient client = new OkHttpClient.Builder()
+            .connectTimeout(5, SECONDS)
+				.build();
 
-		   Request request = new Request.Builder()
-				   				.url(url)
-				   				.post(null)
-				   				.addHeader("Authorization", this.credentionals)
-				   				.build();
+		   final Request request = new Request.Builder()
+            .url(url)
+				.post(null)
+				.addHeader("Authorization", this.credentionals)
+				.build();
 
-		   Response response = client.newCall(request).execute();
-
+		   final Response response = client.newCall(request).execute();
 
 		   return response.body().string();
 	   } catch (final IOException e) {
 		   LOGGER.log(Level.SEVERE, "InfluxDB#executeCommand; Unexpected Exception", e);
-
 		   throw new RuntimeException(e);
 	   }
    }
 
-   private String executeQuery(String query) {
+   private String executeQuery(final String query) {
 	   try {
 		   final String url = this.baseUrl + "/query?" + query;
 
-		   OkHttpClient client = new OkHttpClient.Builder()
-				   						.build();
+		   final OkHttpClient client = new OkHttpClient.Builder().build();
 
-		   Request request = new Request.Builder()
-				   				.url(url)
-				   				.addHeader("Authorization", this.credentionals)
-				   				.build();
+		   final Request request = new Request.Builder()
+            .url(url)
+				.addHeader("Authorization", this.credentionals)
+				.build();
 
-		   Response response = client.newCall(request).execute();
-
+		   final Response response = client.newCall(request).execute();
 
 		   return response.body().string();
 	   } catch (final IOException e) {
 		   LOGGER.log(Level.SEVERE, "InfluxDB#executeQuery; Unexpected Exception", e);
-
 		   throw new RuntimeException(e);
 	   }
    }
@@ -454,31 +448,29 @@ public class InfluxDB implements AutoCloseable {
       }
 
       boolean validateConnection() throws IOException {
-    	 final URL url = InfluxDB.createURL(this.baseURL, "/query", "q=" + URLEncoder.encode("SHOW DATABASES", "utf8"));
+    	   final URL url = InfluxDB.createURL(this.baseURL, "/query", "q=" + URLEncoder.encode("SHOW DATABASES", "utf8"));
 
-    	 OkHttpClient client = new OkHttpClient.Builder()
-    			 					.readTimeout(5, TimeUnit.SECONDS)
-    			 					.connectTimeout(5, TimeUnit.SECONDS)
-    			 					.build();
+    	   final OkHttpClient client = new OkHttpClient.Builder()
+            .readTimeout(5, TimeUnit.SECONDS)
+    		   .connectTimeout(5, TimeUnit.SECONDS)
+    		   .build();
 
-    	 Request request = new Request.Builder()
-    			 				.url(url.toString())
-    			 				.addHeader("Authorization", this.credentials)
-    			 				.build();
+    	   final Request request = new Request.Builder()
+    	      .url(url.toString())
+    			.addHeader("Authorization", this.credentials)
+    			.build();
 
-    	 Call call = client.newCall(request);
+    	   final Call call = client.newCall(request);
+    	   final Response response = call.execute();
 
-    	 Response response = call.execute();
-
-    	 final int status = response.code();
-
+    	   final int status = response.code();
          if (status < 300) {
             return true;
          }
          else if (status == 401) {
             return false;
          }
-         throw new IOException("Unexpected response during connection validation");
+         throw new IOException("Unexpected response code (" + status + ") during connection validation");
       }
    }
 

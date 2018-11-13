@@ -1,3 +1,5 @@
 target
 g1gc.log.0.current
 bin
+.settings/org.eclipse.jdt.apt.core.prefs
+.settings/org.eclipse.m2e.core.prefs

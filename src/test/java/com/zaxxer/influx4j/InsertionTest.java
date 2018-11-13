@@ -68,8 +68,10 @@ public class InsertionTest {
       TimeUnit.SECONDS.sleep(1); // to allow async flush to run before querying
 
 
-      final String command = "SELECT fruit, yummy FROM testSingleInsert";
-      final Query query = new Query(command, database);
+      final Query query = Query.builder()
+         .setCommand("SELECT fruit, yummy FROM testSingleInsert")
+         .setDatabase(database)
+         .build();
 
       String result = influxDB.query(query);
       Assert.assertNotNull(result);
@@ -90,9 +92,10 @@ public class InsertionTest {
 
       TimeUnit.SECONDS.sleep(1); // to allow async flush to run before querying
 
-
-      final String command = "SELECT fruit, count FROM testMultipleInserts";
-      final Query query = new Query(command, database);
+      final Query query = Query.builder()
+         .setCommand("SELECT fruit, count FROM testMultipleInserts")
+         .setDatabase(database)
+         .build();
 
       String result = influxDB.query(query);
       Assert.assertNotNull(result);
