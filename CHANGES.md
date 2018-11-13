@@ -1,3 +1,7 @@
+#### Version 2.0
+ * Removed use of sun.misc.Unsafe
+ * Added support for queries (driver is no longer write-only)
+
 #### Version 1.9
  * Added JSON serialization to ``Point``.  Note that not all InfluxDB measurement names, tag names, or field names are valid JSON property
  names. In these cases, the JSON serializer will replace invalid characters with underscores.
