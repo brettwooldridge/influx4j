@@ -27,7 +27,6 @@
  */
 package com.zaxxer.influx4j.util;
 
-import java.lang.reflect.Field;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReferenceArray;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
@@ -77,6 +76,14 @@ public class FAAArrayQueue<E> {
 
    static final int BUFFER_SIZE = 128;
 
+   @SuppressWarnings("rawtypes")
+   private static final AtomicReferenceFieldUpdater<FAAArrayQueue, Node> headUpdater =
+      AtomicReferenceFieldUpdater.newUpdater(FAAArrayQueue.class, Node.class, "head");
+
+   @SuppressWarnings("rawtypes")
+   private static final AtomicReferenceFieldUpdater<FAAArrayQueue, Node> tailUpdater =
+      AtomicReferenceFieldUpdater.newUpdater(FAAArrayQueue.class, Node.class, "tail");
+
    static class Node<E> {
       @SuppressWarnings("rawtypes")
       private static final AtomicReferenceFieldUpdater<Node, Node> nextUpdater =
@@ -99,21 +106,6 @@ public class FAAArrayQueue<E> {
       boolean casNext(Node<E> cmp, Node<E> val) {
          return nextUpdater.compareAndSet(this, cmp, val);
       }
-
-      // Unsafe mechanics
-      // private static final sun.misc.Unsafe UNSAFE;
-      // private static final long nextOffset;
-
-      // static {
-      //    try {
-      //       Field f = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
-      //       f.setAccessible(true);
-      //       UNSAFE = (sun.misc.Unsafe) f.get(null);
-      //       nextOffset = UNSAFE.objectFieldOffset(Node.class.getDeclaredField("next"));
-      //    } catch (Exception e) {
-      //       throw new Error(e);
-      //    }
-      // }
    }
 
    @sun.misc.Contended
@@ -202,26 +194,10 @@ public class FAAArrayQueue<E> {
    }
 
    private boolean casTail(Node<E> cmp, Node<E> val) {
-      return UNSAFE.compareAndSwapObject(this, tailOffset, cmp, val);
+      return tailUpdater.compareAndSet(this, cmp, val);
    }
 
    private boolean casHead(Node<E> cmp, Node<E> val) {
-      return UNSAFE.compareAndSwapObject(this, headOffset, cmp, val);
-   }
-
-   // Unsafe mechanics
-   private static final sun.misc.Unsafe UNSAFE;
-   private static final long tailOffset;
-   private static final long headOffset;
-   static {
-      try {
-         Field f = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
-         f.setAccessible(true);
-         UNSAFE = (sun.misc.Unsafe) f.get(null);
-         tailOffset = UNSAFE.objectFieldOffset(FAAArrayQueue.class.getDeclaredField("tail"));
-         headOffset = UNSAFE.objectFieldOffset(FAAArrayQueue.class.getDeclaredField("head"));
-      } catch (Exception e) {
-         throw new Error(e);
-      }
+      return headUpdater.compareAndSet(this, cmp, val);
    }
 }
