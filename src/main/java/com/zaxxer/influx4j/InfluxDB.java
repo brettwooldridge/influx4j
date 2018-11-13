@@ -21,6 +21,10 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.Reader;
+import java.io.StringWriter;
+import java.io.Writer;
 import java.net.MalformedURLException;
 import java.net.Socket;
 import java.net.URL;
@@ -48,6 +52,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+import okhttp3.ResponseBody;
 import okio.BufferedSink;
 
 import org.jctools.queues.MpscArrayQueue;
@@ -171,22 +176,40 @@ public class InfluxDB implements AutoCloseable {
       connection.write(point);
    }
 
-
    /**
-    * Query a {@link Query} to the database
+    * Execute a {@link Query}, with the result JSON being returned as a String.
     *
-    * @param query the query to get from the database
+    * @param query the query to execute
     * @return the query result as String
     */
    public String query(final Query query) {
 		try {
-			final String q = "db=" + query.getDatabase() + "&q=" + query.getCommandWithUrlEncoded();
+         try (final StringWriter writer = new StringWriter(1024)) {
+            final String q = "db=" + query.getDatabase() + "&q=" + query.getCommandWithUrlEncoded();
+            executeQuery(q, writer);
 
-			return executeQuery(q);
+            return writer.toString();
+         }
 		} catch (final Exception e) {
 			throw new RuntimeException(e);
 		}
 	}
+
+   /**
+    * Execute a {@link Query}, with the result JSON being written to the speicifed {@link Writer}.
+    *
+    * @param query the query to execute
+    * @param writer the {@link Writer} into which to write the response
+    */
+   public void query(final Query query, final Writer writer) {
+		try {
+			final String q = "db=" + query.getDatabase() + "&q=" + query.getCommandWithUrlEncoded();
+
+			executeQuery(q, writer);
+		} catch (final Exception e) {
+			throw new RuntimeException(e);
+		}
+   }
 
    /**
     * Close the connection to the database.
@@ -289,7 +312,7 @@ public class InfluxDB implements AutoCloseable {
 	   }
    }
 
-   private String executeQuery(final String query) {
+   private void executeQuery(final String query, final Writer writer) {
 	   try {
 		   final String url = this.baseUrl + "/query?" + query;
 
@@ -300,9 +323,19 @@ public class InfluxDB implements AutoCloseable {
 				.addHeader("Authorization", this.credentionals)
 				.build();
 
-		   final Response response = client.newCall(request).execute();
+         final Response response = client.newCall(request).execute();
 
-		   return response.body().string();
+         try (final ResponseBody body = response.body();
+              final Reader responseStream = response.body().charStream()) {
+            int read = 0;
+            final char[] cbuf = new char[1024];
+            do {
+               read = responseStream.read(cbuf);
+               if (read > 0) {
+                  writer.write(cbuf, 0, read);
+               }
+            } while (read > 0);
+         }
 	   } catch (final IOException e) {
 		   LOGGER.log(Level.SEVERE, "InfluxDB#executeQuery; Unexpected Exception", e);
 		   throw new RuntimeException(e);
