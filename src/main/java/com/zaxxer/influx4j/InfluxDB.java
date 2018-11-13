@@ -21,7 +21,6 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.io.IOException;
-import java.io.OutputStream;
 import java.io.Reader;
 import java.io.StringWriter;
 import java.io.Writer;
@@ -303,9 +302,9 @@ public class InfluxDB implements AutoCloseable {
             .addHeader("Authorization", this.credentionals)
             .build();
 
-         final Response response = client.newCall(request).execute();
-
-         return response.body().string();
+         try (final Response response = client.newCall(request).execute()) {
+            return response.body().string();
+         }
       } catch (final IOException e) {
          LOGGER.log(Level.SEVERE, "InfluxDB#executeCommand; Unexpected Exception", e);
          throw new RuntimeException(e);
@@ -440,7 +439,6 @@ public class InfluxDB implements AutoCloseable {
                      throw new RuntimeException("Access denied to user '" + username + "'.");
                   }
 
-
                   connection = CONNECTIONS.computeIfAbsent(
                      InfluxDB.createURL(this.baseURL,
                                  "/write",
@@ -481,29 +479,29 @@ public class InfluxDB implements AutoCloseable {
       }
 
       boolean validateConnection() throws IOException {
-          final URL url = InfluxDB.createURL(this.baseURL, "/query", "q=" + URLEncoder.encode("SHOW DATABASES", "utf8"));
+         final URL url = InfluxDB.createURL(this.baseURL, "/query", "q=" + URLEncoder.encode("SHOW DATABASES", "utf8"));
 
-          final OkHttpClient client = new OkHttpClient.Builder()
+         final OkHttpClient client = new OkHttpClient.Builder()
             .readTimeout(5, TimeUnit.SECONDS)
-             .connectTimeout(5, TimeUnit.SECONDS)
-             .build();
+            .connectTimeout(5, TimeUnit.SECONDS)
+            .build();
 
-          final Request request = new Request.Builder()
-             .url(url.toString())
-             .addHeader("Authorization", this.credentials)
-             .build();
+         final Request request = new Request.Builder()
+            .url(url.toString())
+            .addHeader("Authorization", this.credentials)
+            .build();
 
-          final Call call = client.newCall(request);
-          final Response response = call.execute();
-
-          final int status = response.code();
-         if (status < 300) {
-            return true;
+         final Call call = client.newCall(request);
+         try (final Response response = call.execute()) {
+            final int status = response.code();
+            if (status < 300) {
+               return true;
+            }
+            else if (status == 401) {
+               return false;
+            }
+            throw new IOException("Unexpected response code (" + status + ") during connection validation");
          }
-         else if (status == 401) {
-            return false;
-         }
-         throw new IOException("Unexpected response code (" + status + ") during connection validation");
       }
    }
 
