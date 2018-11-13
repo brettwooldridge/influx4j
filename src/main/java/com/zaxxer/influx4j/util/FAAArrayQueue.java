@@ -30,6 +30,7 @@ package com.zaxxer.influx4j.util;
 import java.lang.reflect.Field;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReferenceArray;
+import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
 
 /**
@@ -77,10 +78,14 @@ public class FAAArrayQueue<E> {
    static final int BUFFER_SIZE = 128;
 
    static class Node<E> {
+      @SuppressWarnings("rawtypes")
+      private static final AtomicReferenceFieldUpdater<Node, Node> nextUpdater =
+         AtomicReferenceFieldUpdater.newUpdater(Node.class, Node.class, "next");
       final AtomicInteger deqidx = new AtomicInteger(0);
       final AtomicReferenceArray<E> items = new AtomicReferenceArray<E>(BUFFER_SIZE);
       final AtomicInteger enqidx = new AtomicInteger(1);
       volatile Node<E> next = null;
+
       // Start with the first entry pre-filled and enqidx at 1
       Node (final E item) {
          items.lazySet(0, item);
@@ -92,23 +97,23 @@ public class FAAArrayQueue<E> {
        * @return {@code true} if CAS was successful
        */
       boolean casNext(Node<E> cmp, Node<E> val) {
-         return UNSAFE.compareAndSwapObject(this, nextOffset, cmp, val);
+         return nextUpdater.compareAndSet(this, cmp, val);
       }
 
       // Unsafe mechanics
-      private static final sun.misc.Unsafe UNSAFE;
-      private static final long nextOffset;
+      // private static final sun.misc.Unsafe UNSAFE;
+      // private static final long nextOffset;
 
-      static {
-         try {
-            Field f = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
-            f.setAccessible(true);
-            UNSAFE = (sun.misc.Unsafe) f.get(null);
-            nextOffset = UNSAFE.objectFieldOffset(Node.class.getDeclaredField("next"));
-         } catch (Exception e) {
-            throw new Error(e);
-         }
-      }
+      // static {
+      //    try {
+      //       Field f = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
+      //       f.setAccessible(true);
+      //       UNSAFE = (sun.misc.Unsafe) f.get(null);
+      //       nextOffset = UNSAFE.objectFieldOffset(Node.class.getDeclaredField("next"));
+      //    } catch (Exception e) {
+      //       throw new Error(e);
+      //    }
+      // }
    }
 
    @sun.misc.Contended
