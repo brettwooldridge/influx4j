@@ -40,6 +40,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.zaxxer.influx4j.util.DaemonThreadFactory;
+import com.zaxxer.influx4j.util.TimeUtil;
 
 import okhttp3.Call;
 import okhttp3.Cookie;
@@ -189,6 +190,31 @@ public class InfluxDB implements AutoCloseable {
 
             return writer.toString();
          }
+      } catch (final Exception e)
+      {
+         throw new RuntimeException(e);
+      }
+   }
+
+   /**
+    * Execute a {@link Query}, with the result JSON being returned as a String, with
+    * timestamps returned in Unix epoch format with the specific precision.
+    *
+    * @param query    the query to execute
+    * @param timeUnit the time unit precision of the timestamps (in Unix epoch format)
+    * @return the query result as String
+    */
+   public String query(final Query query, TimeUnit timeUnit)
+   {
+      try
+      {
+         try (final StringWriter writer = new StringWriter(1024))
+         {
+            final String q = "db=" + query.getDatabase() + "&q=" + query.getCommandWithUrlEncoded() + "&epoch=" + TimeUtil.toTimePrecision(timeUnit);
+            executeQuery(q, writer);
+
+            return writer.toString();
+         }
       } catch (final Exception e) {
          throw new RuntimeException(e);
       }
@@ -203,6 +229,27 @@ public class InfluxDB implements AutoCloseable {
    public void query(final Query query, final Writer writer) {
       try {
          final String q = "db=" + query.getDatabase() + "&q=" + query.getCommandWithUrlEncoded();
+
+         executeQuery(q, writer);
+      } catch (final Exception e)
+      {
+         throw new RuntimeException(e);
+      }
+   }
+
+   /**
+    * Execute a {@link Query}, with the result JSON being written to the speicifed {@link Writer} with
+    * timestamps returned in Unix epoch format with the specific precision.
+    *
+    * @param query    the query to execute
+    * @param writer   the {@link Writer} into which to write the response
+    * @param timeUnit the time unit precision of the timestamps (in Unix epoch format)
+    */
+   public void query(final Query query, final Writer writer, final TimeUnit timeUnit)
+   {
+      try
+      {
+         final String q = "db=" + query.getDatabase() + "&q=" + query.getCommandWithUrlEncoded() + "&epoch=" + TimeUtil.toTimePrecision(timeUnit);
 
          executeQuery(q, writer);
       } catch (final Exception e) {
