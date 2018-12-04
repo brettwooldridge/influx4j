@@ -83,7 +83,18 @@ Point point = pointFactory
 ```
 Note that while a ``TimeUnit`` may be specified on the ``Point``, the ultimate precision of the persisted timestamp will be determined by the *precision* specified in the connection information (*see below for details about connection parameters*).  The ``TimeUnit`` specified on the ``Point`` timestamp will automatically be converted to the precision of the connection.
 
+#### ``Point`` Accessors
 ``Point`` contains ``field()`` methods for the following Java types: ``String``, ``Long``, ``Double``, ``Boolean``.  *Tag* values, as per InfluxDB specification, must be strings.
+
+``Point`` also contains *read* accessors, such as ``String stringField(String field)``, but it is important to note that *influx4j* is optimized for *write performance*, and there is overhead involved in these field accessors due to linear (O(n)) scan of the relavent field type.
+
+If the number of fields of a given type are small, the overhead will not be too great.  Also, if only some fields need to be *read* from a ``Point`` before insertion then you can improve performance by adding those fields *first*, ensuring that they will be among the first to be scanned by the linear search.
+
+Lastly, it should be noted that the read-accossors return objects, such as ``Long``, ``Double``, ``Boolean``, etc. due to the fact that the accessed field may not exist -- and therefore ``null`` must be returned.  The implication, therefore, is that an auto-boxing operation must be performed by the JVM, and the associated overhead that comes with it.
+
+This linear scan behavior is also true of the ``String tag(String tagName)`` accessor.
+
+Note that the ``Point`` class in not involved in the *querying* of InfluxDB, so the above caveats for read-accessors only applies to points that will be written.
 
 #### ``Point`` Copying
 It is quite common to have a set of measurements which share a common set of tags, and which are produced at the same time for insertion into InfluxDB.  The ``Point`` class provides a ``copy()`` method that make this more efficient, both in terms of execution time and code brevity.
