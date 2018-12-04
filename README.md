@@ -94,7 +94,7 @@ This linear scan behavior is also true of the ``String tag(String tagName)`` acc
 
 If the order of fields is always consistent, you can eliminate read-accessor overhead by using the accessors that accept an integer index, such as ``String stringField(int index)``.  This will access the N<sup>th</sup> ``String`` field -- *not* the N<sup>th</sup> field added to the ``Point``; i.e. the *index* is specific by field-type.
 
-Lastly, it should be noted that the read-accossors return objects, such as ``Long``, ``Double``, ``Boolean``, etc. due to the fact that the accessed field may not exist -- and therefore ``null`` must be returned.  The implication, therefore, is that an auto-boxing operation must be performed by the JVM, and the associated overhead that comes with it.
+Lastly, it should be noted that the read-accessors return Objects, such as ``Long``, ``Double``, ``Boolean``, etc. due to the fact that the accessed field may not exist -- and therefore ``null`` must be returned.  The implication, therefore, is that an auto-boxing operation must be performed by the JVM, and the associated overhead that comes with it (incl. garbage).
 
 Note that the ``Point`` class in not involved in the *querying* of InfluxDB, so the above caveats for read-accessors only applies to points that will be written.
 
