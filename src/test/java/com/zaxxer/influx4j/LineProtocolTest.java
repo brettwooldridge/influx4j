@@ -45,12 +45,6 @@ public class LineProtocolTest {
       pointFactory.flush();
    }
 
-   @Test(expected = IllegalStateException.class)
-   public void testNoField() throws IOException {
-      pointFactory.createPoint("testMeasurement")
-            .write(null, null);
-   }
-
    @Test
    public void testMeasurement() throws IOException {
       final ByteBuffer buffer = ByteBuffer.allocate(128);

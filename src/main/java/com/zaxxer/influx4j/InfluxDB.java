@@ -607,6 +607,8 @@ public class InfluxDB implements AutoCloseable {
       }
 
       void write(final Point point) {
+         point.check();
+
          if (!pointQueue.offer(point)) {
             LOGGER.log(Level.FINE, "Point queue overflow.  Exceeded capacity of {}, point was dropped.", pointQueue.capacity());
          }

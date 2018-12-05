@@ -56,6 +56,12 @@ public class InsertionTest {
       influxDB.close();
    }
 
+   @Test(expected = IllegalStateException.class)
+   public void testNoField() {
+      final Point point = pointFactory.createPoint("testMeasurement");
+      influxDB.write(point);
+   }
+
    @Test
    public void testSingleInsert() throws Exception {
       final Point point = pointFactory.createPoint("testSingleInsert")

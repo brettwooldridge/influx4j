@@ -547,7 +547,7 @@ public class Point implements AutoCloseable {
       return sb.toString();
    }
 
-   void write(final ByteBuffer buffer, final Precision precision) {
+   void check() throws IllegalStateException {
       final int fieldCount = longFieldIndex + booleanFieldIndex + stringFieldIndex + doubleFieldIndex;
 
       if (fieldCount == 0) {
@@ -556,7 +556,9 @@ public class Point implements AutoCloseable {
       if (timestamp == 0) {
          throw new IllegalStateException("Point requires a timestamp, default timestamps are not supported");
       }
+   }
 
+   void write(final ByteBuffer buffer, final Precision precision) {
       serializeMeasurement(buffer, measurement);
 
       if (tagIndex > 0) {
