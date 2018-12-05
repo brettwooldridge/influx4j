@@ -58,6 +58,7 @@ The total memory consumed by the pool will be determined by the "high water mark
  
 You *can* obtain ``Points`` from the ``PointFactory`` that you simply throw away, without damaging the pool.  For example, if your code may throw an exception after creating a ``Point``, but before persisting it, you need not worry about recycling the ``Point`` via try-finally logic etc.  Just don't make a habit of casually throwing away Points, after all, decreasing garbage is one of the goals of the library.
 
+------------------------------------------------------------------------------------------------------------------------------
 ### :diamond_shape_with_a_dot_inside: Creating a ``Point``
 Once you have a ``PointFactory`` instance, you are ready to create ``Point`` instances to persist.  The ``Point`` class implements a builder-like pattern.
 
@@ -124,6 +125,7 @@ There are several important things to note about the ``copy()`` method:
  * The _**timestamp**_ of the source ``Point`` is copied (retained).
  * The copied point, ``point2`` in the example above, is a ``Point`` like any other, and therefore additional _**tags**_ and _**fields**_ may be added, and the _**timestamp**_ changed/updated via the standard methods.
 
+------------------------------------------------------------------------------------------------------------------------------
 ### :electric_plug: Connection
 An instance of ``InfluxDB`` represents a connection to the database. Similar to the ``PointFactory``, a ``Builder`` is used to configure and create an instance of ``InfluxDB``.
 
@@ -175,7 +177,8 @@ The following configuration parameters are supported by the ``InfluxDB.Builder``
 <img src="https://emojipedia-us.s3.amazonaws.com/thumbs/160/emojipedia/132/spool-of-thread_1f9f5.png" height="24px" align="middle"> ``setThreadFactory(ThreadFactory threadFactory)`` <br>
 > An optional ``ThreadFactory`` used to create the auto-flush background thread.
 
-#### :pencil2: Writing a ``Point``
+------------------------------------------------------------------------------------------------------------------------------
+### :pencil2: Writing a ``Point``
 Writing a ``Point`` is simple, there is only one method: ``write(Point point)``.
 ```Java
 Point point = pointFactory.createPoint("survey")
