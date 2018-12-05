@@ -114,8 +114,8 @@ Point point1 = pointFactory
 
 Point point2 = point1
    .copy("netStats")
-   .field("inOctets", hostCpu)
-   .field("outOctets", hostMemTotal)
+   .field("inOctets", hostInOctets)
+   .field("outOctets", hostOutOctets)
 ```
 There are several important things to note about the ``copy()`` method:
  * A new _**measurement**_ name is specified as a parameter to the ``copy()`` method.
