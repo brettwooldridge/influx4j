@@ -36,10 +36,13 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.zaxxer.influx4j.util.DaemonThreadFactory;
+import com.zaxxer.influx4j.util.HexDumpElf;
 import com.zaxxer.influx4j.util.TimeUtil;
 
 import okhttp3.Call;
@@ -640,6 +643,7 @@ public class InfluxDB implements AutoCloseable {
                try {
                   buffer.flip();
                   sink.write(buffer.array(), 0, buffer.remaining());
+                  sink.flush();
                }
                finally {
                   buffer.clear();
@@ -654,6 +658,36 @@ public class InfluxDB implements AutoCloseable {
             .build();
 
          final Call httpCall = client.newCall(request);
+
+         final Function<Call, Void> writeBuffers = (call) -> {
+            final Supplier<Void> requestBufferLog = () -> {
+               if (LOGGER.isLoggable(Level.FINEST)) {
+                  try {
+                     LOGGER.finest("Request buffer: \n" + HexDumpElf.dump(0, buffer.array(), 0, requestBody.contentLength()));
+                  }
+                  catch (final IOException io) {
+                     LOGGER.log(Level.WARNING, "Exception logging request body", io);
+                  }
+               }
+               return null;
+            };
+
+            try (Response response = call.execute()) {
+               if (!response.isSuccessful()) {
+                  // TODO: What? Log? Potentially spammy...
+                  LOGGER.severe("Error persisting points.  Response code: " + response.code()
+                                 + ", message " + response.message()
+                                 + ".  Response body:\n" + response.body().string());
+                  requestBufferLog.get();
+               }
+            }
+            catch (final IOException io) {
+               // TODO: What? Log? Potentially spammy...
+               LOGGER.log(Level.SEVERE, "Exception persisting points.  Message: " + io.getLocalizedMessage(), io);
+               requestBufferLog.get();
+            }
+            return null;
+         };
 
          try {
             while (!shutdown) {
@@ -673,7 +707,7 @@ public class InfluxDB implements AutoCloseable {
                if (buffer.position() > 0) {
                   final boolean again = buffer.remaining() < MAXIMUM_SERIALIZED_POINT_SIZE;
 
-                  writeBuffers(httpCall);
+                  writeBuffers.apply(httpCall.clone());
                   if (debug) LOGGER.fine("InfluxDB HTTP write time: " + TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNs) + "ms");
 
                   if (again) {
@@ -693,20 +727,6 @@ public class InfluxDB implements AutoCloseable {
          }
          finally {
             shutdownSemaphore.release();
-         }
-      }
-
-      private void writeBuffers(final Call httpCall) {
-         final Call call = httpCall.clone();
-         try (Response response = call.execute()) {
-            if (!response.isSuccessful()) {
-               // TODO: What? Log? Potentially spammy...
-               LOGGER.severe("Error persisting points.  Response code: " + response.code() + ", message " + response.message());
-            }
-         }
-         catch (final IOException io) {
-            // TODO: What? Log? Potentially spammy...
-            LOGGER.log(Level.SEVERE, "Exception persisting points.  Message: " + io.getLocalizedMessage(), io);
          }
       }
    }
