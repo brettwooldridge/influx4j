@@ -129,6 +129,9 @@ public class InfluxDB implements AutoCloseable {
    public static final int MAXIMUM_SERIALIZED_POINT_SIZE;
    private static final int MAXIMUM_POINT_BATCH_SIZE;
    private static final int SEND_BUFFER_SIZE;
+   private static final int HTTP_CONNECT_TIMEOUT;
+   private static final int HTTP_READ_TIMEOUT;
+   private static final int HTTP_WRITE_TIMEOUT;
 
    private static final ConcurrentHashMap<URL, SocketConnection> CONNECTIONS = new ConcurrentHashMap<>();
 
@@ -137,6 +140,9 @@ public class InfluxDB implements AutoCloseable {
    private final String credentionals;
 
    static {
+      HTTP_CONNECT_TIMEOUT = Integer.getInteger("com.zaxxer.influx4j.connect.timeout", 15);
+      HTTP_READ_TIMEOUT = Integer.getInteger("com.zaxxer.influx4j.connect.timeout", 15);
+      HTTP_WRITE_TIMEOUT = Integer.getInteger("com.zaxxer.influx4j.connect.timeout", 15);
 
       MAXIMUM_SERIALIZED_POINT_SIZE = Integer.getInteger("com.zaxxer.influx4j.maxSerializedPointSize", 32 * 1024);
       MAXIMUM_POINT_BATCH_SIZE = Integer.getInteger("com.zaxxer.influx4j.maxPointBatchSize", 5000);
@@ -343,7 +349,9 @@ public class InfluxDB implements AutoCloseable {
          final String url = this.baseUrl + "/query?" + query;
 
          final OkHttpClient client = new OkHttpClient.Builder()
-            .connectTimeout(5, SECONDS)
+            .connectTimeout(HTTP_CONNECT_TIMEOUT, SECONDS)
+            .readTimeout(HTTP_READ_TIMEOUT, SECONDS)
+            .writeTimeout(HTTP_WRITE_TIMEOUT, SECONDS)
             .build();
 
          final Request request = new Request.Builder()
@@ -365,7 +373,11 @@ public class InfluxDB implements AutoCloseable {
       try {
          final String url = this.baseUrl + "/query?" + query;
 
-         final OkHttpClient client = new OkHttpClient.Builder().build();
+         final OkHttpClient client = new OkHttpClient.Builder()
+            .connectTimeout(HTTP_CONNECT_TIMEOUT, SECONDS)
+            .readTimeout(HTTP_READ_TIMEOUT, SECONDS)
+            .writeTimeout(HTTP_WRITE_TIMEOUT, SECONDS)
+            .build();
 
          final Request request = new Request.Builder()
             .url(url)
@@ -532,8 +544,9 @@ public class InfluxDB implements AutoCloseable {
          final URL url = InfluxDB.createURL(this.baseURL, "/query", "q=" + URLEncoder.encode("SHOW DATABASES", "utf8"));
 
          final OkHttpClient client = new OkHttpClient.Builder()
-            .readTimeout(5, TimeUnit.SECONDS)
-            .connectTimeout(5, TimeUnit.SECONDS)
+            .connectTimeout(HTTP_CONNECT_TIMEOUT, SECONDS)
+            .readTimeout(HTTP_READ_TIMEOUT, SECONDS)
+            .writeTimeout(HTTP_WRITE_TIMEOUT, SECONDS)
             .build();
 
          final Request request = new Request.Builder()
@@ -585,8 +598,9 @@ public class InfluxDB implements AutoCloseable {
          this.shutdownSemaphore.acquireUninterruptibly();
          this.client = new OkHttpClient.Builder()
             .retryOnConnectionFailure(true)
-            .connectTimeout(5, SECONDS)
-            .readTimeout(30, SECONDS)
+            .connectTimeout(HTTP_CONNECT_TIMEOUT, SECONDS)
+            .readTimeout(HTTP_READ_TIMEOUT, SECONDS)
+            .writeTimeout(HTTP_WRITE_TIMEOUT, SECONDS)
             .cookieJar(new CookieJar() {
                private List<Cookie> cookies;
 
