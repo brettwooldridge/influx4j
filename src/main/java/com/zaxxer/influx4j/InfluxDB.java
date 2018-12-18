@@ -36,6 +36,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.logging.Level;
@@ -126,6 +127,10 @@ public class InfluxDB implements AutoCloseable {
       }
    }
 
+   public static interface InfluxDbListener {
+      void outcome(boolean success, long finalSequence);
+   }
+
    public static final int MAXIMUM_SERIALIZED_POINT_SIZE;
    private static final int MAXIMUM_POINT_BATCH_SIZE;
    private static final int SEND_BUFFER_SIZE;
@@ -137,7 +142,7 @@ public class InfluxDB implements AutoCloseable {
 
    private final SocketConnection connection;
    private final String baseUrl;
-   private final String credentionals;
+   private final String credentials;
 
    static {
       HTTP_CONNECT_TIMEOUT = Integer.getInteger("com.zaxxer.influx4j.connect.timeout", 15);
@@ -163,10 +168,10 @@ public class InfluxDB implements AutoCloseable {
 
    private InfluxDB(final SocketConnection connection,
                     final String baseUrl,
-                    final String credentionals) {
+                    final String credentials) {
       this.connection = connection;
       this.baseUrl = baseUrl;
-      this.credentionals = credentionals;
+      this.credentials = credentials;
    }
 
    /*****************************************************************************************
@@ -357,7 +362,7 @@ public class InfluxDB implements AutoCloseable {
          final Request request = new Request.Builder()
             .url(url)
             .get()
-            .addHeader("Authorization", this.credentionals)
+            .addHeader("Authorization", this.credentials)
             .build();
 
          try (final Response response = client.newCall(request).execute()) {
@@ -381,7 +386,7 @@ public class InfluxDB implements AutoCloseable {
 
          final Request request = new Request.Builder()
             .url(url)
-            .addHeader("Authorization", this.credentionals)
+            .addHeader("Authorization", this.credentials)
             .build();
 
          final Response response = client.newCall(request).execute();
@@ -427,6 +432,7 @@ public class InfluxDB implements AutoCloseable {
       private Consistency consistency = Consistency.ONE;
       private Precision precision = Precision.NANOSECOND;
       private ThreadFactory threadFactory;
+      private InfluxDbListener listener;
 
       private Builder() {
       }
@@ -484,6 +490,11 @@ public class InfluxDB implements AutoCloseable {
          return this;
       }
 
+      public Builder setInfluxDbListener(final InfluxDbListener listener) {
+         this.listener = listener;
+         return this;
+      }
+
       public InfluxDB build() {
          if (username == null) throw new IllegalStateException("Influx 'username' must be specified.");
          if (password == null) throw new IllegalStateException("Influx 'password' must be specified.");
@@ -533,7 +544,7 @@ public class InfluxDB implements AutoCloseable {
 
       private SocketConnection createConnection(final URL url) {
          try {
-            return new SocketConnection(url, credentials, precision, autoFlushPeriod, threadFactory);
+            return new SocketConnection(url, credentials, precision, autoFlushPeriod, threadFactory, listener);
          }
          catch (final Exception e) {
             throw new RuntimeException(e);
@@ -574,6 +585,8 @@ public class InfluxDB implements AutoCloseable {
     */
    private static class SocketConnection implements Runnable {
       private static final MediaType MEDIA_TYPE_TEXT = MediaType.parse("text/plain; charset=utf-8");
+      private static final int QUEUE_SIZE = 64 * 1024;
+      private static final int QUEUE_RETRY_LIMIT = 48 * 1024;
 
       private final OkHttpClient client;
       private final Semaphore shutdownSemaphore;
@@ -583,17 +596,20 @@ public class InfluxDB implements AutoCloseable {
       private final String credentials;
       private final long autoFlushPeriod;
       private volatile boolean shutdown;
+      private final InfluxDbListener listener;
 
       SocketConnection(final URL url,
-                     final String credentials,
+                       final String credentials,
                        final Precision precision,
                        final long autoFlushPeriod,
-                       final ThreadFactory threadFactory) throws IOException {
+                       final ThreadFactory threadFactory,
+                       final InfluxDbListener listener) throws IOException {
          this.url = url;
          this.credentials = credentials;
          this.precision = precision;
          this.autoFlushPeriod = autoFlushPeriod;
-         this.pointQueue = new MpscArrayQueue<>(64 * 1024);
+         this.listener = listener;
+         this.pointQueue = new MpscArrayQueue<>(QUEUE_SIZE);
          this.shutdownSemaphore = new Semaphore(1);
          this.shutdownSemaphore.acquireUninterruptibly();
          this.client = new OkHttpClient.Builder()
@@ -648,22 +664,27 @@ public class InfluxDB implements AutoCloseable {
       public void run() {
          final ByteBuffer buffer = ByteBuffer.allocate(SEND_BUFFER_SIZE - 512);
 
-         final RequestBody requestBody = new RequestBody() {
+         class InfluxRequestBody extends RequestBody {
+            private int length;
+
+            @Override public long contentLength() {
+               buffer.flip();
+               buffer.mark();
+               length = buffer.remaining();
+               return length;
+            }
+
             @Override public MediaType contentType() {
                return MEDIA_TYPE_TEXT;
              }
 
             @Override public void writeTo(BufferedSink sink) throws IOException {
-               try {
-                  buffer.flip();
-                  sink.write(buffer.array(), 0, buffer.remaining());
-                  sink.flush();
-               }
-               finally {
-                  buffer.clear();
-               }
+               sink.write(buffer.array(), 0, length);
+               sink.flush();
             }
-         };
+         }
+
+         final InfluxRequestBody requestBody = new InfluxRequestBody();
 
          final Request request = new Request.Builder()
             .url(url)
@@ -673,34 +694,44 @@ public class InfluxDB implements AutoCloseable {
 
          final Call httpCall = client.newCall(request);
 
-         final Function<Call, Void> writeBuffers = (call) -> {
-            final Supplier<Void> requestBufferLog = () -> {
-               if (LOGGER.isLoggable(Level.FINEST)) {
-                  try {
-                     LOGGER.finest("Request buffer: \n" + HexDumpElf.dump(0, buffer.array(), 0, requestBody.contentLength()));
-                  }
-                  catch (final IOException io) {
-                     LOGGER.log(Level.WARNING, "Exception logging request body", io);
-                  }
-               }
-               return null;
-            };
+         final Supplier<Boolean> writeBuffers = () -> {
+            boolean succeeded = true;
+            do {
+               final Call call = httpCall.clone();
+               try (Response response = call.execute()) {
+                  if (response.isSuccessful()) break;
 
-            try (Response response = call.execute()) {
-               if (!response.isSuccessful()) {
-                  // TODO: What? Log? Potentially spammy...
+                  final String message = response.message();
                   LOGGER.severe("Error persisting points.  Response code: " + response.code()
-                                 + ", message " + response.message()
+                                 + ", message " + message
                                  + ".  Response body:\n" + response.body().string());
-                  requestBufferLog.get();
+
+                  if (!message.contains("timeout")) {
+                     LOGGER.severe("Insertion failed with a non-recoverable error, dropping point batch.");
+                     succeeded = false;
+                     break;
+                  }
                }
-            }
-            catch (final IOException io) {
-               // TODO: What? Log? Potentially spammy...
-               LOGGER.log(Level.SEVERE, "Exception persisting points.  Message: " + io.getLocalizedMessage(), io);
-               requestBufferLog.get();
-            }
-            return null;
+               catch (final IOException io) {
+                  LOGGER.log(Level.SEVERE, "Exception persisting points.  Message: " + io.getLocalizedMessage(), io);
+               }
+
+               if (LOGGER.isLoggable(Level.FINEST)) {
+                  LOGGER.finest("Request buffer: \n" + HexDumpElf.dump(0, buffer.array(), 0, requestBody.length));
+               }
+
+               if (pointQueue.size() > QUEUE_RETRY_LIMIT) {
+                  LOGGER.severe("Retry has not succeeded and the pending queue has exceeded 75% capacity, dropping point batch.");
+                  succeeded = false;
+                  break;
+               }
+
+               buffer.reset();
+               LockSupport.parkNanos(autoFlushPeriod);
+            } while (true);
+
+            buffer.clear();
+            return succeeded;
          };
 
          try {
@@ -709,19 +740,25 @@ public class InfluxDB implements AutoCloseable {
                final boolean debug = LOGGER.isLoggable(Level.FINE);
 
                int batchSize = 0;
+               long lastPointSequence = 0;
                do {
                   try (final Point point = pointQueue.poll()) {
                      if (point == null) break;
 
                      if (debug && batchSize == 0) LOGGER.fine("First point in batch " + point);
                      point.write(buffer, precision);
+                     lastPointSequence = point.getSequence();
                   }
                } while (buffer.remaining() >= MAXIMUM_SERIALIZED_POINT_SIZE && ++batchSize < MAXIMUM_POINT_BATCH_SIZE);
 
                if (buffer.position() > 0) {
                   final boolean again = buffer.remaining() < MAXIMUM_SERIALIZED_POINT_SIZE;
 
-                  writeBuffers.apply(httpCall.clone());
+                  final boolean success = writeBuffers.get();
+                  if (listener != null) {
+                     listener.outcome(success, lastPointSequence);
+                  }
+
                   if (debug) LOGGER.fine("InfluxDB HTTP write time: " + TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNs) + "ms");
 
                   if (again) {

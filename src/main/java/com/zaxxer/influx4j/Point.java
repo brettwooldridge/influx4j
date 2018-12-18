@@ -63,6 +63,8 @@ public class Point implements AutoCloseable {
    private int stringFieldIndex;
    private int booleanFieldIndex;
 
+   long sequence;
+
    Point(final PointFactory parentFactory) {
       this.parentFactory = parentFactory;
       this.tags = new StringPair[MAX_TAG_COUNT];
@@ -424,6 +426,15 @@ public class Point implements AutoCloseable {
          if (field.equals(boolFields[i].name)) return i;
       }
       return -1;
+   }
+
+   /**
+    * Get the sequence number of this {@link Point}.  Sequence numbers are unique and
+    * monotonically increasing.
+    * @return the point sequence number
+    */
+   public long getSequence() {
+      return sequence;
    }
 
    /**

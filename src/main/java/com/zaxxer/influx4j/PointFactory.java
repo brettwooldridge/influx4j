@@ -16,6 +16,9 @@
 
 package com.zaxxer.influx4j;
 
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+
 import com.zaxxer.influx4j.util.FAAArrayQueue;
 
  /**
@@ -26,6 +29,7 @@ import com.zaxxer.influx4j.util.FAAArrayQueue;
   */
 public class PointFactory {
    private final FAAArrayQueue<Point> pointPool;
+   private final AtomicLong sequence;
    private final int maxPoolSize;
 
    /**
@@ -54,6 +58,7 @@ public class PointFactory {
       }
 
       point.measurement(measurement);
+      point.sequence = sequence.getAndIncrement();
       return point;
    }
 
@@ -80,6 +85,7 @@ public class PointFactory {
    private PointFactory(final int initialPoolSize, final int maxPoolSize) {
       this.pointPool = new FAAArrayQueue<>();
       this.maxPoolSize = maxPoolSize;
+      this.sequence = new AtomicLong();
 
       // Pre-populate the pool
       for (int i = 0; i < initialPoolSize; i++) {
