@@ -668,9 +668,11 @@ public class InfluxDB implements AutoCloseable {
             private int length;
 
             @Override public long contentLength() {
-               buffer.flip();
-               buffer.mark();
-               length = buffer.remaining();
+               if (buffer.position() > 0) {
+                  buffer.flip();
+                  buffer.mark();
+                  length = buffer.remaining();
+               }
                return length;
             }
 
