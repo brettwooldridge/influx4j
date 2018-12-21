@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="26a9a626-848d-4de4-9dc3-3c8ef0952310" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/examples/com/zaxxer/influx4j/example/ResilientInfluxDB.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/bin/benchmarks/src/main/java/com/zaxxer/influx4j/LineProtocolBench.java" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/bin/src/main/java/com/zaxxer/influx4j/InfluxDB.java" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/bin/src/main/java/com/zaxxer/influx4j/Point.java" beforeDir="false" />
@@ -22,6 +22,7 @@
       <change beforePath="$PROJECT_DIR$/bin/src/test/java/com/zaxxer/influx4j/InsertionTest.java" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/bin/src/test/java/com/zaxxer/influx4j/LineProtocolTest.java" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/zaxxer/influx4j/InfluxDB.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/zaxxer/influx4j/InfluxDB.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/zaxxer/influx4j/PointFactory.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/zaxxer/influx4j/PointFactory.java" afterDir="false" />
     </list>
     <ignored path="$PROJECT_DIR$/target/" />
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -32,31 +33,23 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file pinned="false" current-in-tab="true">
+      <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/main/java/com/zaxxer/influx4j/InfluxDB.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="105">
-              <caret line="21" lean-forward="true" selection-start-line="21" selection-end-line="21" />
+            <state relative-caret-position="519">
+              <caret line="179" column="6" selection-start-line="179" selection-start-column="6" selection-end-line="179" selection-end-column="20" />
               <folding>
-                <element signature="e#6006#6007#0" expanded="true" />
-                <element signature="e#6042#6043#0" expanded="true" />
-                <element signature="e#22871#22872#0" expanded="true" />
-                <element signature="e#22925#22926#0" expanded="true" />
+                <element signature="imports" expanded="true" />
               </folding>
             </state>
           </provider>
         </entry>
       </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/examples/com/zaxxer/influx4j/example/ResilientInfluxDB.java">
+      <file pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/src/main/java/com/zaxxer/influx4j/PointFactory.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="986">
-              <caret line="88" lean-forward="true" selection-start-line="88" selection-end-line="88" />
-              <folding>
-                <element signature="imports" expanded="true" />
-                <element signature="e#163#164#0" expanded="true" />
-                <element signature="e#200#201#0" expanded="true" />
-              </folding>
+            <state relative-caret-position="603">
+              <caret line="59" lean-forward="true" selection-start-line="59" selection-end-line="59" />
             </state>
           </provider>
         </entry>
@@ -83,6 +76,7 @@
       <list>
         <option value="$PROJECT_DIR$/examples/com/zaxxer/influx4j/example/ResilientInfluxDB.java" />
         <option value="$PROJECT_DIR$/src/main/java/com/zaxxer/influx4j/InfluxDB.java" />
+        <option value="$PROJECT_DIR$/src/main/java/com/zaxxer/influx4j/PointFactory.java" />
       </list>
     </option>
   </component>
@@ -127,6 +121,14 @@
               <item name="src" type="462c0819:PsiDirectoryNode" />
               <item name="main" type="462c0819:PsiDirectoryNode" />
               <item name="java" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="influx4j" type="b2602c69:ProjectViewProjectNode" />
+              <item name="influx4j" type="462c0819:PsiDirectoryNode" />
+              <item name="src" type="462c0819:PsiDirectoryNode" />
+              <item name="main" type="462c0819:PsiDirectoryNode" />
+              <item name="java" type="462c0819:PsiDirectoryNode" />
+              <item name="influx4j" type="462c0819:PsiDirectoryNode" />
             </path>
           </expand>
           <select />
@@ -287,17 +289,18 @@
       <workItem from="1545374716600" duration="5000" />
       <workItem from="1545374737756" duration="691000" />
       <workItem from="1545375458013" duration="1959000" />
+      <workItem from="1545378933830" duration="724000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="3228000" />
+    <option name="totallyTimeSpent" value="3952000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="2377" y="1913" width="1920" height="1177" extended-state="0" />
     <editor active="true" />
     <layout>
-      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.25772098" />
+      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.2603834" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Designer" order="2" />
       <window_info id="Image Layers" order="3" />
@@ -419,25 +422,27 @@
     <entry file="file://$PROJECT_DIR$/examples/com/zaxxer/influx4j/example/ResilientInfluxDB.java">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="986">
-          <caret line="88" lean-forward="true" selection-start-line="88" selection-end-line="88" />
+          <caret line="88" selection-start-line="88" selection-end-line="88" />
           <folding>
             <element signature="imports" expanded="true" />
-            <element signature="e#163#164#0" expanded="true" />
-            <element signature="e#200#201#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/main/java/com/zaxxer/influx4j/InfluxDB.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="105">
-          <caret line="21" lean-forward="true" selection-start-line="21" selection-end-line="21" />
+        <state relative-caret-position="519">
+          <caret line="179" column="6" selection-start-line="179" selection-start-column="6" selection-end-line="179" selection-end-column="20" />
           <folding>
-            <element signature="e#6006#6007#0" expanded="true" />
-            <element signature="e#6042#6043#0" expanded="true" />
-            <element signature="e#22871#22872#0" expanded="true" />
-            <element signature="e#22925#22926#0" expanded="true" />
+            <element signature="imports" expanded="true" />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/com/zaxxer/influx4j/PointFactory.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="603">
+          <caret line="59" lean-forward="true" selection-start-line="59" selection-end-line="59" />
         </state>
       </provider>
     </entry>

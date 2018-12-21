@@ -39,6 +39,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.LockSupport;
 import java.util.function.Supplier;
 import java.util.logging.Level;
@@ -127,6 +128,7 @@ public class InfluxDB implements AutoCloseable {
 
    private static final ConcurrentHashMap<URL, SocketConnection> CONNECTIONS = new ConcurrentHashMap<>();
 
+   private final AtomicLong sequence;
    private final SocketConnection connection;
    private final String baseUrl;
    private final String credentials;
@@ -159,6 +161,7 @@ public class InfluxDB implements AutoCloseable {
       this.connection = connection;
       this.baseUrl = baseUrl;
       this.credentials = credentials;
+      this.sequence = new AtomicLong();
    }
 
    /*****************************************************************************************
@@ -174,6 +177,7 @@ public class InfluxDB implements AutoCloseable {
     * @param point the point to write to the database
     */
    public void write(final Point point) {
+      point.sequence = sequence.incrementAndGet();
       connection.write(point);
    }
 
