@@ -16,9 +16,13 @@
 
 package com.zaxxer.influx4j;
 
-import static java.lang.System.nanoTime;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.SECONDS;
+import com.zaxxer.influx4j.util.DaemonThreadFactory;
+import com.zaxxer.influx4j.util.HexDumpElf;
+import com.zaxxer.influx4j.util.TimeUtil;
+
+import okhttp3.*;
+import okio.BufferedSink;
+import org.jctools.queues.MpscArrayQueue;
 
 import java.io.IOException;
 import java.io.Reader;
@@ -36,30 +40,13 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
-import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import com.zaxxer.influx4j.util.DaemonThreadFactory;
-import com.zaxxer.influx4j.util.HexDumpElf;
-import com.zaxxer.influx4j.util.TimeUtil;
-
-import okhttp3.Call;
-import okhttp3.Cookie;
-import okhttp3.CookieJar;
-import okhttp3.Credentials;
-import okhttp3.HttpUrl;
-import okhttp3.MediaType;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
-import okhttp3.ResponseBody;
-import okio.BufferedSink;
-
-import org.jctools.queues.MpscArrayQueue;
+import static java.lang.System.nanoTime;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 
 /**
@@ -72,7 +59,7 @@ public class InfluxDB implements AutoCloseable {
    /*****************************************************************************************
     * InfluxDB wire protocols.
     */
-   public static enum Protocol {
+   public enum Protocol {
       HTTP,
       HTTPS,
       UDP;
@@ -86,7 +73,7 @@ public class InfluxDB implements AutoCloseable {
    /*****************************************************************************************
     * InfluxDB data consistency.
     */
-   public static enum Consistency {
+   public enum Consistency {
       ALL,
       ANY,
       ONE,
@@ -101,7 +88,7 @@ public class InfluxDB implements AutoCloseable {
    /*****************************************************************************************
     * InfluxDB timestamp precision.
     */
-   public static enum Precision {
+   public enum Precision {
       NANOSECOND("n", TimeUnit.NANOSECONDS),
       MICROSECOND("u", TimeUnit.MICROSECONDS),
       MILLISECOND("ms", TimeUnit.MILLISECONDS),
@@ -127,7 +114,7 @@ public class InfluxDB implements AutoCloseable {
       }
    }
 
-   public static interface InfluxDbListener {
+   public interface InfluxDbListener {
       void outcome(boolean success, long finalSequence);
    }
 
