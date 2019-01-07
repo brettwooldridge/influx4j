@@ -21,8 +21,6 @@
       <change beforePath="$PROJECT_DIR$/bin/src/test/java/com/zaxxer/influx4j/FastValue2BufferTest.java" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/bin/src/test/java/com/zaxxer/influx4j/InsertionTest.java" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/bin/src/test/java/com/zaxxer/influx4j/LineProtocolTest.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/zaxxer/influx4j/InfluxDB.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/zaxxer/influx4j/InfluxDB.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/zaxxer/influx4j/PointFactory.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/zaxxer/influx4j/PointFactory.java" afterDir="false" />
     </list>
     <ignored path="$PROJECT_DIR$/target/" />
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -33,11 +31,11 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file pinned="false" current-in-tab="false">
+      <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/main/java/com/zaxxer/influx4j/InfluxDB.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="519">
-              <caret line="179" column="6" selection-start-line="179" selection-start-column="6" selection-end-line="179" selection-end-column="20" />
+            <state relative-caret-position="155">
+              <caret line="165" lean-forward="true" selection-start-line="165" selection-end-line="165" />
               <folding>
                 <element signature="imports" expanded="true" />
               </folding>
@@ -45,11 +43,11 @@
           </provider>
         </entry>
       </file>
-      <file pinned="false" current-in-tab="true">
+      <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/main/java/com/zaxxer/influx4j/PointFactory.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="603">
-              <caret line="59" lean-forward="true" selection-start-line="59" selection-end-line="59" />
+            <state relative-caret-position="645">
+              <caret line="59" selection-start-line="59" selection-end-line="59" />
             </state>
           </provider>
         </entry>
@@ -134,8 +132,8 @@
           <select />
         </subPane>
       </pane>
-      <pane id="Scope" />
       <pane id="PackagesPane" />
+      <pane id="Scope" />
     </panes>
   </component>
   <component name="PropertiesComponent">
@@ -289,18 +287,19 @@
       <workItem from="1545374716600" duration="5000" />
       <workItem from="1545374737756" duration="691000" />
       <workItem from="1545375458013" duration="1959000" />
-      <workItem from="1545378933830" duration="724000" />
+      <workItem from="1545378933830" duration="1328000" />
+      <workItem from="1546819735856" duration="1715000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="3952000" />
+    <option name="totallyTimeSpent" value="6271000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="2377" y="1913" width="1920" height="1177" extended-state="0" />
     <editor active="true" />
     <layout>
-      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.2603834" />
+      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.2630458" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Designer" order="2" />
       <window_info id="Image Layers" order="3" />
@@ -431,8 +430,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/main/java/com/zaxxer/influx4j/InfluxDB.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="519">
-          <caret line="179" column="6" selection-start-line="179" selection-start-column="6" selection-end-line="179" selection-end-column="20" />
+        <state relative-caret-position="155">
+          <caret line="165" lean-forward="true" selection-start-line="165" selection-end-line="165" />
           <folding>
             <element signature="imports" expanded="true" />
           </folding>
@@ -441,8 +440,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/main/java/com/zaxxer/influx4j/PointFactory.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="603">
-          <caret line="59" lean-forward="true" selection-start-line="59" selection-end-line="59" />
+        <state relative-caret-position="645">
+          <caret line="59" selection-start-line="59" selection-end-line="59" />
         </state>
       </provider>
     </entry>
