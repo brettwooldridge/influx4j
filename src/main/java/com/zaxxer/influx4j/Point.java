@@ -518,42 +518,6 @@ public class Point implements AutoCloseable {
       return StandardCharsets.UTF_8.decode(buf).toString();
    }
 
-   private String escapeForJson(String value) {
-      StringBuilder result = new StringBuilder();
-
-      StringCharacterIterator iterator = new StringCharacterIterator(value);
-      for (char ch = iterator.first(); ch != StringCharacterIterator.DONE; ch = iterator.next()) {
-         switch (ch) {
-            case '\\':
-               result.append("\\\\");
-               break;
-            case '"':
-               result.append("\\\"");
-               break;
-            case '\b':
-               result.append("\\b");
-               break;
-            case '\f':
-               result.append("\\f");
-               break;
-            case '\n':
-               result.append("\\n");
-               break;
-            case '\r':
-               result.append("\\r");
-               break;
-            case '\t':
-               result.append("\\t");
-               break;
-            default:
-               result.append(ch);
-               break;
-         }
-      }
-
-      return result.toString();
-   }
-
    public String toJson() {
       final StringBuilder sb = new StringBuilder(256)
          .append("{")
@@ -564,14 +528,18 @@ public class Point implements AutoCloseable {
          .append(", \"tags\": {");
       for (int i = 0; i < tagIndex; i++) {
          sb.append("\"").append(tags[i].name.replaceAll("[^\\w]", "_")).append("\":");
-         sb.append("\"").append(escapeForJson(tags[i].value)).append("\",");
+         sb.append("\"");
+         escapeForJson(sb, tags[i].value);
+         sb.append("\",");
       }
       if (tagIndex > 0) sb.setLength(sb.length() - 1);
       boolean fieldWritten = false;
       sb.append("}, \"fields\": {");
       for (int i = 0; i < stringFieldIndex; i++) {
          sb.append("\"").append(stringFields[i].name.replaceAll("[^\\w]", "_")).append("\":");
-         sb.append("\"").append(escapeForJson(stringFields[i].value)).append("\",");
+         sb.append("\"");
+         escapeForJson(sb, stringFields[i].value);
+         sb.append("\",");
          fieldWritten = true;
       }
       for (int i = 0; i < longFieldIndex; i++) {
@@ -671,6 +639,51 @@ public class Point implements AutoCloseable {
       parentFactory.returnPoint(this);
    }
 
+   private void escapeForJson(final StringBuilder sb, final String string) {
+      boolean needsEscape = false;
+      for (int i = 0; i < string.length(); i++) {
+         final char c = string.charAt(i);
+         if (c < ' ' || c == '"' || c == '\\') {
+            needsEscape = true;
+            break;
+         }
+      }
+
+      if (needsEscape) {
+         for (int i = 0; i < string.length(); i++) {
+            final char c = string.charAt(i);
+            switch (c) {
+               case '\\':
+                  sb.append("\\\\");
+                  break;
+               case '"':
+                  sb.append("\\\"");
+                  break;
+               case '\b':
+                  sb.append("\\b");
+                  break;
+               case '\f':
+                  sb.append("\\f");
+                  break;
+               case '\n':
+                  sb.append("\\n");
+                  break;
+               case '\r':
+                  sb.append("\\r");
+                  break;
+               case '\t':
+                  sb.append("\\t");
+                  break;
+               default:
+                  sb.append(c);
+                  break;
+            }
+         }
+      }
+      else {
+         sb.append(string);
+      }
+   }
 
    /*********************************************************************************************
     * Serialization
