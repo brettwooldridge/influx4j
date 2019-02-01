@@ -18,6 +18,7 @@ package com.zaxxer.influx4j;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.text.StringCharacterIterator;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -517,6 +518,42 @@ public class Point implements AutoCloseable {
       return StandardCharsets.UTF_8.decode(buf).toString();
    }
 
+   private String escapeForJson(String value) {
+      StringBuilder result = new StringBuilder();
+
+      StringCharacterIterator iterator = new StringCharacterIterator(value);
+      for (char ch = iterator.first(); ch != StringCharacterIterator.DONE; ch = iterator.next()) {
+         switch (ch) {
+            case '\\':
+               result.append("\\\\");
+               break;
+            case '"':
+               result.append("\\\"");
+               break;
+            case '\b':
+               result.append("\\b");
+               break;
+            case '\f':
+               result.append("\\f");
+               break;
+            case '\n':
+               result.append("\\n");
+               break;
+            case '\r':
+               result.append("\\r");
+               break;
+            case '\t':
+               result.append("\\t");
+               break;
+            default:
+               result.append(ch);
+               break;
+         }
+      }
+
+      return result.toString();
+   }
+
    public String toJson() {
       final StringBuilder sb = new StringBuilder(256)
          .append("{")
@@ -527,14 +564,14 @@ public class Point implements AutoCloseable {
          .append(", \"tags\": {");
       for (int i = 0; i < tagIndex; i++) {
          sb.append("\"").append(tags[i].name.replaceAll("[^\\w]", "_")).append("\":");
-         sb.append("\"").append(tags[i].value.replaceAll("\"", "\\\"")).append("\",");
+         sb.append("\"").append(escapeForJson(tags[i].value)).append("\",");
       }
       if (tagIndex > 0) sb.setLength(sb.length() - 1);
       boolean fieldWritten = false;
       sb.append("}, \"fields\": {");
       for (int i = 0; i < stringFieldIndex; i++) {
          sb.append("\"").append(stringFields[i].name.replaceAll("[^\\w]", "_")).append("\":");
-         sb.append("\"").append(stringFields[i].value.replaceAll("\"", "\\\"")).append("\",");
+         sb.append("\"").append(escapeForJson(stringFields[i].value)).append("\",");
          fieldWritten = true;
       }
       for (int i = 0; i < longFieldIndex; i++) {
