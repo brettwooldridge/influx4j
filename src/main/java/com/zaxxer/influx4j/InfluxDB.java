@@ -19,7 +19,6 @@ package com.zaxxer.influx4j;
 import com.zaxxer.influx4j.util.DaemonThreadFactory;
 import com.zaxxer.influx4j.util.HexDumpElf;
 import com.zaxxer.influx4j.util.TimeUtil;
-
 import okhttp3.*;
 import okio.BufferedSink;
 import org.jctools.queues.MpscArrayQueue;
@@ -33,6 +32,7 @@ import java.net.Socket;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -53,9 +53,11 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 /**
  * @author brett.wooldridge at gmail.com
  */
+@SuppressWarnings({"WeakerAccess", "unused"})
 public class InfluxDB implements AutoCloseable {
 
    private static final Logger LOGGER = Logger.getLogger(InfluxDB.class.getName());
+   private static final String UTF_8 = StandardCharsets.UTF_8.name();
 
    /*****************************************************************************************
     * InfluxDB wire protocols.
@@ -74,6 +76,7 @@ public class InfluxDB implements AutoCloseable {
    /*****************************************************************************************
     * InfluxDB data consistency.
     */
+   @SuppressWarnings("unused")
    public enum Consistency {
       ALL,
       ANY,
@@ -89,6 +92,7 @@ public class InfluxDB implements AutoCloseable {
    /*****************************************************************************************
     * InfluxDB timestamp precision.
     */
+   @SuppressWarnings("unused")
    public enum Precision {
       NANOSECOND("n", TimeUnit.NANOSECONDS),
       MICROSECOND("u", TimeUnit.MICROSECONDS),
@@ -164,9 +168,8 @@ public class InfluxDB implements AutoCloseable {
       this.sequence = new AtomicLong();
    }
 
-   /*****************************************************************************************
-    * InfluxDB public methods.
-    */
+   // ***************************************************************************************
+   // InfluxDB public methods.
 
    /**
     * Write a {@link Point} to the database.  If the HTTP/S protocol is used, points are buffered
@@ -275,7 +278,7 @@ public class InfluxDB implements AutoCloseable {
    public String createDatabase(final String name) {
       try {
          final String query = "db="
-              + "&q=create+database+" + URLEncoder.encode(name, "utf8");
+              + "&q=create+database+" + URLEncoder.encode(name, UTF_8);
 
          return executeCommand(query);
       }
@@ -305,8 +308,8 @@ public class InfluxDB implements AutoCloseable {
       final boolean isDefault) {
       try {
          String query = "db="
-            + "&q=CREATE+RETENTION+POLICY+%22" + URLEncoder.encode(name, "utf8") + "%22"
-            + "+ON+%22" + URLEncoder.encode(dbName, "utf8") + "%22"
+            + "&q=CREATE+RETENTION+POLICY+%22" + URLEncoder.encode(name, UTF_8) + "%22"
+            + "+ON+%22" + URLEncoder.encode(dbName, UTF_8) + "%22"
             + "+DURATION+" + duration + durationUnit.precision
             + "+REPLICATION+" + replicationFactor;
 
@@ -340,7 +343,7 @@ public class InfluxDB implements AutoCloseable {
        }
     }
 
-   private String executeCommand(final String query) throws IOException, MalformedURLException {
+   private String executeCommand(final String query) {
       try {
          final String url = this.baseUrl + "/query?" + query;
 
@@ -357,6 +360,7 @@ public class InfluxDB implements AutoCloseable {
             .build();
 
          try (final Response response = client.newCall(request).execute()) {
+            //noinspection ConstantConditions
             return response.body().string();
          }
       } catch (final IOException e) {
@@ -382,9 +386,10 @@ public class InfluxDB implements AutoCloseable {
 
          final Response response = client.newCall(request).execute();
 
+         //noinspection ConstantConditions
          try (final ResponseBody body = response.body();
               final Reader responseStream = response.body().charStream()) {
-            int read = 0;
+            int read;
             final char[] cbuf = new char[1024];
             do {
                read = responseStream.read(cbuf);
@@ -412,6 +417,7 @@ public class InfluxDB implements AutoCloseable {
     * Builder for an {@link InfluxDB} instance.  Call {@link InfluxDB#builder()} to
     * create an instance of the {@link Builder}.
     */
+   @SuppressWarnings("WeakerAccess")
    public static class Builder {
       private String retentionPolicy = "autogen";
       private String database;
@@ -509,7 +515,7 @@ public class InfluxDB implements AutoCloseable {
                                  "db=" + database,
                                    "consistency=" + consistency,
                                    "precision=" + precision,
-                                   "rp=" + URLEncoder.encode(retentionPolicy, "utf8")),
+                                   "rp=" + URLEncoder.encode(retentionPolicy, UTF_8)),
                                    this::createConnection);
 
                   break;
@@ -542,8 +548,9 @@ public class InfluxDB implements AutoCloseable {
          }
       }
 
+      @SuppressWarnings("Duplicates")
       boolean validateConnection() throws IOException {
-         final URL url = InfluxDB.createURL(this.baseURL, "/query", "q=" + URLEncoder.encode("SHOW DATABASES", "utf8"));
+         final URL url = InfluxDB.createURL(this.baseURL, "/query", "q=" + URLEncoder.encode("SHOW DATABASES", UTF_8));
 
          final OkHttpClient client = new OkHttpClient.Builder()
             .connectTimeout(HTTP_CONNECT_TIMEOUT, SECONDS)
@@ -594,7 +601,7 @@ public class InfluxDB implements AutoCloseable {
                        final Precision precision,
                        final long autoFlushPeriod,
                        final ThreadFactory threadFactory,
-                       final InfluxDbListener listener) throws IOException {
+                       final InfluxDbListener listener) {
          this.url = url;
          this.credentials = credentials;
          this.precision = precision;
@@ -695,6 +702,7 @@ public class InfluxDB implements AutoCloseable {
                   if (response.isSuccessful()) break;
 
                   final String message = response.message();
+                  //noinspection ConstantConditions
                   LOGGER.severe("Error persisting points.  Response code: " + response.code()
                                  + ", message " + message
                                  + ".  Response body:\n" + response.body().string());
