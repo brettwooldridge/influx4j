@@ -729,7 +729,7 @@ public class InfluxDB implements AutoCloseable {
 
                buffer.reset();
                LockSupport.parkNanos(autoFlushPeriod);
-            } while (true);
+            } while (!shutdown);
 
             buffer.clear();
             return succeeded;
