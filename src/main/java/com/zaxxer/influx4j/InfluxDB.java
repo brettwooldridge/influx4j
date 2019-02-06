@@ -31,6 +31,7 @@ import java.net.MalformedURLException;
 import java.net.Socket;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -505,9 +506,13 @@ public class InfluxDB implements AutoCloseable {
             switch (protocol) {
                case HTTP:
                case HTTPS: {
-                  if (!validateConnection()) {
-                     throw new RuntimeException("Access denied to user '" + username + "'.");
-                  }
+                  try {
+	                  if (!validateConnection()) {
+	                     throw new RuntimeException("Access denied to user '" + username + "'.");
+	                  }
+            	  } catch (UnknownHostException uhe) {
+            		  LOGGER.log(Level.SEVERE, "Unable to create connection.  Message: " + uhe.getLocalizedMessage());
+            	  }
 
                   connection = CONNECTIONS.computeIfAbsent(
                      InfluxDB.createURL(this.baseURL,
