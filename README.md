@@ -202,5 +202,5 @@ See the [InsertionTest](https://github.com/brettwooldridge/influx4j/blob/master/
 [Maven Central]:https://maven-badges.herokuapp.com/maven-central/com.zaxxer/influx4j
 [Maven Central img]:https://maven-badges.herokuapp.com/maven-central/com.zaxxer/influx4j/badge.svg
 
-[Javadocs]:http://javadoc.io/doc/com.zaxxer/influx4j/1.6
+[Javadocs]:http://javadoc.io/doc/com.zaxxer/influx4j/2.6
 [Javadocs img]:http://javadoc.io/badge/com.zaxxer/influx4j.svg
