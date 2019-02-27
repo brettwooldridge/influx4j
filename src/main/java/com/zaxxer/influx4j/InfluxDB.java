@@ -701,13 +701,15 @@ public class InfluxDB implements AutoCloseable {
                try (Response response = call.execute()) {
                   if (response.isSuccessful()) break;
 
+                  final String responseBody = response.body().string();
                   final String message = response.message();
+
                   //noinspection ConstantConditions
                   LOGGER.severe("Error persisting points.  Response code: " + response.code()
                                  + ", message " + message
-                                 + ".  Response body:\n" + response.body().string());
+                                 + ".  Response body:\n" + responseBody);
 
-                  if (!message.contains("timeout")) {
+                  if (!responseBody.contains("timeout")) {
                      LOGGER.severe("Insertion failed with a non-recoverable error, dropping point batch.");
                      succeeded = false;
                      break;
