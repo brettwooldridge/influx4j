@@ -1,3 +1,9 @@
+#### Version 2.8
+ * Improve logging around persist failure and subsequent successful retry.
+ 
+#### Version 2.7
+ * Fix issue whereby timeout exceptions were not properly detected and persist operations not retried.
+
 #### Version 2.6
  * Add influx persist outcome listener and failure retry logic.
  * Point.toJson() escape handling.
