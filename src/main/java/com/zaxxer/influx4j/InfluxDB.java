@@ -641,7 +641,7 @@ public class InfluxDB implements AutoCloseable {
          point.check();
 
          if (!pointQueue.offer(point)) {
-            LOGGER.log(Level.FINE, "Point queue overflow.  Exceeded capacity of {}, point was dropped.", pointQueue.capacity());
+            LOGGER.log(Level.SEVERE, "Point queue overflow.  Exceeded capacity of {0}, point was dropped.", pointQueue.capacity());
          }
       }
 
@@ -695,23 +695,26 @@ public class InfluxDB implements AutoCloseable {
          final Call httpCall = client.newCall(request);
 
          final Supplier<Boolean> writeBuffers = () -> {
-            boolean succeeded = true;
+            boolean retried = false;
+            boolean succeeded = false;
             do {
                final Call call = httpCall.clone();
                try (Response response = call.execute()) {
-                  if (response.isSuccessful()) break;
+                  if (response.isSuccessful()) {
+                     succeeded = true;
+                     break;
+                  }
 
                   final String responseBody = response.body().string();
                   final String message = response.message();
 
                   //noinspection ConstantConditions
-                  LOGGER.severe("Error persisting points.  Response code: " + response.code()
+                  LOGGER.warning("Error persisting points, retrying.  Response code: " + response.code()
                                  + ", message " + message
                                  + ".  Response body:\n" + responseBody);
 
                   if (!responseBody.contains("timeout")) {
                      LOGGER.severe("Insertion failed with a non-recoverable error, dropping point batch.");
-                     succeeded = false;
                      break;
                   }
                }
@@ -725,13 +728,15 @@ public class InfluxDB implements AutoCloseable {
 
                if (pointQueue.size() > QUEUE_RETRY_LIMIT) {
                   LOGGER.severe("Retry has not succeeded and the pending queue has exceeded 75% capacity, dropping point batch.");
-                  succeeded = false;
                   break;
                }
 
+               retried = true;
                buffer.reset();
                LockSupport.parkNanos(autoFlushPeriod);
             } while (!shutdown);
+
+            if (retried && succeeded) LOGGER.info("Retry of point persist succeeded.");
 
             buffer.clear();
             return succeeded;
@@ -748,7 +753,7 @@ public class InfluxDB implements AutoCloseable {
                   try (final Point point = pointQueue.poll()) {
                      if (point == null) break;
 
-                     if (debug && batchSize == 0) LOGGER.fine("First point in batch " + point);
+                     if (debug && batchSize == 0) LOGGER.log(Level.FINE, "First point in batch {0}", point);
                      point.write(buffer, precision);
                      lastPointSequence = point.getSequence();
                   }
@@ -762,7 +767,7 @@ public class InfluxDB implements AutoCloseable {
                      listener.outcome(success, lastPointSequence);
                   }
 
-                  if (debug) LOGGER.fine("InfluxDB HTTP write time: " + TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNs) + "ms");
+                  if (debug) LOGGER.log(Level.FINE, "InfluxDB HTTP write time: {0}", TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNs) + "ms");
 
                   if (again) {
                      // skip parking below, we still have more points to process but just ran out of buffer

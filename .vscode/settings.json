@@ -20,5 +20,11 @@
   "files.trimFinalNewlines": true,
 
   // Controls auto save of dirty files. Accepted values:  'off', 'afterDelay', 'onFocusChange' (editor loses focus), 'onWindowChange' (window loses focus). If set to 'afterDelay', you can configure the delay in 'files.autoSaveDelay'.
-  "files.autoSave": "on"  
+"files.autoSave": "on",
+"files.exclude": {
+   "**/.classpath": true,
+   "**/.project": true,
+   "**/.settings": true,
+   "**/.factorypath": true
+}
 }
