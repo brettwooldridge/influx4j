@@ -247,6 +247,16 @@ public class Point implements AutoCloseable {
    }
 
    /**
+    * Get the name of the specified long integer field, by internal index.  If no such long integer field was set
+    * on this {@link Point}, the return value will be {@code null}.
+    * @param index the internal index of the long integer field
+    * @return the name of the long integer field or {@code null}
+    */
+   public String longFieldName(final int index) {
+      return (longFieldIndex > 0) ? longFields[index].name() : null;
+   }
+
+   /**
     * Get the value of the specified floating point double field as an auto-boxed {@link Double}.
     * If no double field was set on this {@link Point}, the return value will be {@code null}.
     * @param field the name of the double field
@@ -270,6 +280,16 @@ public class Point implements AutoCloseable {
     */
     public Double doubleField(final int index) {
       return (index < doubleFieldIndex) ? doubleFields[index].value : null;
+   }
+
+   /**
+    * Get the name of the specified double field, by internal index.  If no such double field was set
+    * on this {@link Point}, the return value will be {@code null}.
+    * @param index the internal index of the double field
+    * @return the name of the double field or {@code null}
+    */
+    public String doubleFieldName(final int index) {
+      return (doubleFieldIndex > 0) ? doubleFields[index].name() : null;
    }
 
    /**
@@ -299,6 +319,16 @@ public class Point implements AutoCloseable {
    }
 
    /**
+    * Get the name of the specified boolean field, by internal index.  If no such boolean field was set
+    * on this {@link Point}, the return value will be {@code null}.
+    * @param index the internal index of the boolean field
+    * @return the name of the boolean field or {@code null}
+    */
+    public String booleanFieldName(final int index) {
+      return (booleanFieldIndex > 0) ? boolFields[index].name() : null;
+   }
+
+   /**
     * Get the value of the specified string field.  If no string field was set on this
     * {@link Point}, the return value will be {@code null}.
     * @param field the name of the string field
@@ -321,6 +351,16 @@ public class Point implements AutoCloseable {
     */
     public String stringField(final int index) {
       return (index < stringFieldIndex) ? stringFields[index].value : null;
+   }
+
+   /**
+    * Get the name of the specified string field, by internal index.  If no such string field was set
+    * on this {@link Point}, the return value will be {@code null}.
+    * @param index the internal index of the string field
+    * @return the name of the string field or {@code null}
+    */
+    public String stringFieldName(final int index) {
+      return (stringFieldIndex > 0) ? stringFields[index].name() : null;
    }
 
    /**
