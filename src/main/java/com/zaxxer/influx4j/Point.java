@@ -18,7 +18,6 @@ package com.zaxxer.influx4j;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.text.StringCharacterIterator;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -340,6 +339,19 @@ public class Point implements AutoCloseable {
    }
 
    /**
+    * Get the tag (name and value) at the specified index.
+    * @param index the internal index of the tag
+    * @return an array of two elements, name and value, or {@code null}
+    */
+   public String[] tag(final int index) {
+      if (index >= 0 && index < tagIndex) {
+         final StringPair pair = tags[index];
+         return new String[] {pair.name, pair.value};
+      }
+      return null;
+   }
+
+   /**
     * Get the type of the specified field.  This call is relatively expensive, so it is
     * recommended that the result be cached if frequent access is neccessary.
     * @param field the name of the field
@@ -367,6 +379,38 @@ public class Point implements AutoCloseable {
     */
    public int getFieldCount() {
       return longFieldIndex + doubleFieldIndex + booleanFieldIndex + stringFieldIndex;
+   }
+
+   /**
+    * Get the number of long fields currently set on this {@link Point}.
+    * @return the number of long fields currently set
+    */
+    public int getLongFieldCount() {
+      return longFieldIndex;
+   }
+
+   /**
+    * Get the number of double fields currently set on this {@link Point}.
+    * @return the number of double fields currently set
+    */
+    public int getDoubleFieldCount() {
+      return doubleFieldIndex;
+   }
+
+   /**
+    * Get the number of long fields currently set on this {@link Point}.
+    * @return the number of long fields currently set
+    */
+    public int getStringFieldCount() {
+      return stringFieldIndex;
+   }
+
+   /**
+    * Get the number of long fields currently set on this {@link Point}.
+    * @return the number of long fields currently set
+    */
+    public int getBooleanFieldCount() {
+      return booleanFieldIndex;
    }
 
    /**
