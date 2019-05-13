@@ -122,6 +122,32 @@ public class Point implements AutoCloseable {
       }
       return this;
    }
+   
+   /**
+    * Add a Long integer field to the {@link Point} with the specified value.
+    * @param field the name of the field
+    * @param value the long value associated with the field
+    * @return this {@link Point}
+    */
+   public Point field(final String field, final Long value) {
+      if (field != null && value != null) {
+         longFields[longFieldIndex++].setPair(field, value);
+      }
+      return this;
+   }
+
+   /**
+    * Add an Integer field to the {@link Point} with the specified value.
+    * @param field the name of the field
+    * @param value the long value associated with the field
+    * @return this {@link Point}
+    */
+   public Point field(final String field, final Integer value) {
+      if (field != null && value != null) {
+         longFields[longFieldIndex++].setPair(field, value);
+      }
+      return this;
+   }
 
    /**
     * Add a floating point double field to the {@link Point} with the specified value.
@@ -135,6 +161,19 @@ public class Point implements AutoCloseable {
       }
       return this;
    }
+   
+   /**
+    * Add a floating point Double field to the {@link Point} with the specified value.
+    * @param field the name of the field
+    * @param value the double value associated with the field
+    * @return this {@link Point}
+    */
+   public Point field(final String field, final Double value) {
+      if (field != null && value != null) {
+         doubleFields[doubleFieldIndex++].setPair(field, value);
+      }
+      return this;
+   }
 
    /**
     * Add a boolean field to the {@link Point} with the specified value.
@@ -144,6 +183,19 @@ public class Point implements AutoCloseable {
     */
    public Point field(final String field, final boolean value) {
       if (field != null) {
+         boolFields[booleanFieldIndex++].setPair(field, value);
+      }
+      return this;
+   }
+   
+   /**
+    * Add a Boolean field to the {@link Point} with the specified value.
+    * @param field the name of the field
+    * @param value the boolean value associated with the field
+    * @return this {@link Point}
+    */
+   public Point field(final String field, final Boolean value) {
+      if (field != null && value != null) {
          boolFields[booleanFieldIndex++].setPair(field, value);
       }
       return this;
