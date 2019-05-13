@@ -505,9 +505,11 @@ public class InfluxDB implements AutoCloseable {
             switch (protocol) {
                case HTTP:
                case HTTPS: {
-                  if (!validateConnection()) {
-                     throw new RuntimeException("Access denied to user '" + username + "'.");
-                  }
+                  try {
+	            	  if (!validateConnection()) {
+	            		  throw new RuntimeException("Access denied to user '" + username + "'.");
+	            	  }
+            	  } catch (final IOException e) {}
 
                   connection = CONNECTIONS.computeIfAbsent(
                      InfluxDB.createURL(this.baseURL,
