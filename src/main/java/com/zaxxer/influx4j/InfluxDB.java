@@ -429,6 +429,7 @@ public class InfluxDB implements AutoCloseable {
       private Precision precision = Precision.NANOSECOND;
       private ThreadFactory threadFactory;
       private InfluxDbListener listener;
+      private boolean failOnConnectionValidationFailure = true;
 
       private Builder() {
       }
@@ -491,6 +492,11 @@ public class InfluxDB implements AutoCloseable {
          return this;
       }
 
+      public Builder setFailOnConnectionValidationFailure(final boolean failOnConnectionValidationFailure) {
+          this.failOnConnectionValidationFailure = failOnConnectionValidationFailure;
+          return this;
+       }
+
       public InfluxDB build() {
          if (username == null) throw new IllegalStateException("Influx 'username' must be specified.");
          if (password == null) throw new IllegalStateException("Influx 'password' must be specified.");
@@ -504,8 +510,18 @@ public class InfluxDB implements AutoCloseable {
             switch (protocol) {
                case HTTP:
                case HTTPS: {
-                  if (!validateConnection()) {
-                     throw new RuntimeException("Access denied to user '" + username + "'.");
+                  if (failOnConnectionValidationFailure) {
+                      if (!validateConnection()) {
+                         throw new RuntimeException("Access denied to user '" + username + "'.");
+                      }
+                  } else {
+                      try {
+                          if (!validateConnection()) {
+                              throw new RuntimeException("Access denied to user '" + username + "'.");
+                          }
+                      } catch (IOException | RuntimeException e) {
+                          LOGGER.log(Level.WARNING, "Could not validate connection", e);
+                      }
                   }
 
                   connection = CONNECTIONS.computeIfAbsent(
