@@ -1,3 +1,13 @@
+#### Version 2.11
+ * Fix connection leak by using a shared HTTP client for queries.
+ * Support skipping connection validation on startup.
+
+#### Version 2.10
+ * Added accessors to get field names by index (by type).
+
+#### Version 2.9
+ * Added accessors to get field counts by type.
+
 #### Version 2.8
  * Improve logging around persist failure and subsequent successful retry.
  
