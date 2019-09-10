@@ -723,6 +723,8 @@ public class Point implements AutoCloseable {
       parentFactory.returnPoint(this);
    }
 
+   private static final String[] HEX_PAD = {"", "000", "00", "0", ""};
+
    private void escapeForJson(final StringBuilder sb, final String string) {
       boolean needsEscape = false;
       for (int i = 0; i < string.length(); i++) {
@@ -759,7 +761,14 @@ public class Point implements AutoCloseable {
                   sb.append("\\t");
                   break;
                default:
-                  sb.append(c);
+                  if (c < ' ') {
+                     final String hex = Integer.toHexString(c);
+                     final int len = hex.length();
+                     sb.append('\\').append('u').append(HEX_PAD[len]).append(hex);
+                  }
+                  else {
+                     sb.append(c);
+                  }
                   break;
             }
          }
