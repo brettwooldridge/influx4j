@@ -294,7 +294,7 @@ public class LineProtocolTest {
       final long timestamp = 1526493357619L;
       final String json = pointFactory.createPoint("testMeasurement")
             .tag("chocolate", "1")
-            .tag("cho-co late", "stripme")
+            .tag("cho-co late\u0001\b", "stripme")
             .field("string", "This is a test")
             .field("escapedstring", "This\r\nstringg\bwill\tneed to be\"escaped\" with '\\' characters.")
             .field("long", Long.MIN_VALUE)
@@ -303,7 +303,7 @@ public class LineProtocolTest {
             .timestamp(timestamp, TimeUnit.MILLISECONDS)
             .toJson();
 
-      Assert.assertEquals("{\"measurement\":\"testMeasurement\", \"timestamp\":1526493357619, \"tags\": {\"chocolate\":\"1\",\"cho_co_late\":\"stripme\"}, \"fields\": {\"string\":\"This is a test\",\"escapedstring\":\"This\\r\\nstringg\\bwill\\tneed to be\\\"escaped\\\" with '\\\\' characters.\",\"long\":-9223372036854775808,\"com_ma\":1,\"boolean\":true}}", json);
+      Assert.assertEquals("{\"measurement\":\"testMeasurement\", \"timestamp\":1526493357619, \"tags\": {\"chocolate\":\"1\",\"cho-co late\\u0001\\b\":\"stripme\"}, \"fields\": {\"string\":\"This is a test\",\"escapedstring\":\"This\\r\\nstringg\\bwill\\tneed to be\\\"escaped\\\" with '\\\\' characters.\",\"long\":-9223372036854775808,\"com,ma\":1,\"boolean\":true}}", json);
    }
 
    private String buffer2string(final ByteBuffer buffer) {

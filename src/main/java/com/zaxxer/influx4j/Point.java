@@ -602,6 +602,12 @@ public class Point implements AutoCloseable {
       return StandardCharsets.UTF_8.decode(buf).toString();
    }
 
+   private void appendName(StringBuilder sb, String name) {
+      sb.append("\"");
+      escapeForJson(sb, name);
+      sb.append("\":");
+   }
+
    public String toJson() {
       final StringBuilder sb = new StringBuilder(256)
          .append("{")
@@ -611,7 +617,7 @@ public class Point implements AutoCloseable {
          .append(Precision.MILLISECOND.convert(timestamp, timeUnit))
          .append(", \"tags\": {");
       for (int i = 0; i < tagIndex; i++) {
-         sb.append("\"").append(tags[i].name.replaceAll("[^\\w]", "_")).append("\":");
+         appendName(sb, tags[i].name);
          sb.append("\"");
          escapeForJson(sb, tags[i].value);
          sb.append("\",");
@@ -620,24 +626,24 @@ public class Point implements AutoCloseable {
       boolean fieldWritten = false;
       sb.append("}, \"fields\": {");
       for (int i = 0; i < stringFieldIndex; i++) {
-         sb.append("\"").append(stringFields[i].name.replaceAll("[^\\w]", "_")).append("\":");
+         appendName(sb, stringFields[i].name);
          sb.append("\"");
          escapeForJson(sb, stringFields[i].value);
          sb.append("\",");
          fieldWritten = true;
       }
       for (int i = 0; i < longFieldIndex; i++) {
-         sb.append("\"").append(longFields[i].name.replaceAll("[^\\w]", "_")).append("\":");
+         appendName(sb, longFields[i].name);
          sb.append(longFields[i].value).append(",");
          fieldWritten = true;
       }
       for (int i = 0; i < doubleFieldIndex; i++) {
-         sb.append("\"").append(doubleFields[i].name.replaceAll("[^\\w]", "_")).append("\":");
+         appendName(sb, doubleFields[i].name);
          sb.append(doubleFields[i].value).append(",");
          fieldWritten = true;
       }
       for (int i = 0; i < booleanFieldIndex; i++) {
-         sb.append("\"").append(boolFields[i].name.replaceAll("[^\\w]", "_")).append("\":");
+         appendName(sb, boolFields[i].name);
          sb.append(boolFields[i].value).append(",");
          fieldWritten = true;
       }
