@@ -897,23 +897,24 @@ public class Point implements AutoCloseable {
    }
 
    private static void escapeDoubleQuoteAndBackslashIfLast(final String string, final ByteBuffer buffer) {
-      final int lastCharacterIndex = string.length() - 1;
-      if (string.indexOf('"') != -1 || (lastCharacterIndex >= 0 && string.charAt(lastCharacterIndex) == '\\')) {
+      if (!string.isEmpty() &&
+         (string.indexOf('"') != -1 || string.charAt(string.length() - 1) == '\\')) {
          final byte[] bytes = string.getBytes();
-         for (int i = 0; i < lastCharacterIndex; i++) {
+         final int lastBytesIndex = bytes.length - 1;
+         for (int i = 0; i < lastBytesIndex; i++) {
             if (bytes[i] == '"') {
                buffer.put((byte) '\\');
             }
             buffer.put(bytes[i]);
          }
 
-         if (lastCharacterIndex >= 0) {
+         if (lastBytesIndex >= 0) {
             // Normally "\" does not need to be escaped, but if it comes last
             // then escaping it is necessary to avoid escaping the quote
-            if (bytes[lastCharacterIndex] == '\\') {
+            if (bytes[lastBytesIndex] == '\\') {
                buffer.put((byte) '\\');
             }
-            buffer.put(bytes[lastCharacterIndex]);
+            buffer.put(bytes[lastBytesIndex]);
          }
       }
       else {

@@ -134,10 +134,10 @@ public class PointTest {
    public void testEscapeBackslashWhenIsLastCharacter() throws Exception {
       final Point point = pointFactory.createPoint("testEscapeLastCharacter")
          .tag("table", "3")
-         .field("path", "D:\\")
+         .field("path", "D:節\\")
          .timestamp();
 
-      Assert.assertEquals(tsString("testEscapeLastCharacter,table=3 path=\"D:\\\\\"", point.getTimestamp()), point.toString());
+      Assert.assertEquals(tsString("testEscapeLastCharacter,table=3 path=\"D:節\\\\\"", point.getTimestamp()), point.toString());
    }
 
    private static String tsString(final String str, final long timestamp) {
