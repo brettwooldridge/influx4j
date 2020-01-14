@@ -17,6 +17,7 @@
 package com.zaxxer.influx4j;
 
 import java.util.concurrent.TimeUnit;
+import java.util.stream.IntStream;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -106,5 +107,36 @@ public class InsertionTest {
       String result = influxDB.query(query);
       Assert.assertNotNull(result);
       Assert.assertTrue(result.startsWith("{\"results\":[{\"statement_id\":0,\"series\":[{\"name\":\"testMultipleInserts\",\"columns\":[\"time\",\"fruit\",\"count\"],\"values\":"));
+   }
+
+   @Test
+   public void testBackSlashAsLastFieldValueMultipleInserts() throws Exception {
+      final long timeNs = TimeUnit.MILLISECONDS.toNanos(System.currentTimeMillis());
+
+      final String[] paths = new String [] {
+         "A:\\",
+         "path with space",   // Spaces being present only changes the error from " unbalanced quotes" to "bad timestamp"
+      };
+
+      IntStream.range(0, paths.length)
+         .forEach(i -> {
+               final Point point = pointFactory.createPoint("testEscapeLastCharacterInserts")
+                  .tag("fruit", "banana" + i)
+                  .field("path", paths[i])
+                  .timestamp(timeNs, TimeUnit.NANOSECONDS);
+               influxDB.write(point);
+            }
+         );
+
+      TimeUnit.SECONDS.sleep(1); // to allow async flush to run before querying
+
+      final Query query = Query.builder()
+         .setCommand("SELECT COUNT(\"path\") FROM testEscapeLastCharacterInserts")
+         .setDatabase(database)
+         .build();
+
+      final String result = influxDB.query(query).trim();
+      Assert.assertTrue(result.startsWith("{\"results\":[{\"statement_id\":0,\"series\":[{\"name\":\"testEscapeLastCharacterInserts\",\"columns\":[\"time\",\"count\"],\"values\":"));
+      Assert.assertTrue(result.endsWith("Z\",2]]}]}]}"));
    }
 }

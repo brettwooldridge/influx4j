@@ -130,6 +130,16 @@ public class PointTest {
       Assert.assertEquals(tsString("testRemoveLastTagThenAdd,animal=2,apple=1,zebra=4 field=\"foo\"", point.getTimestamp()), point.toString());
    }
 
+   @Test
+   public void testEscapeBackslashWhenIsLastCharacter() throws Exception {
+      final Point point = pointFactory.createPoint("testEscapeLastCharacter")
+         .tag("table", "3")
+         .field("path", "D:\\")
+         .timestamp();
+
+      Assert.assertEquals(tsString("testEscapeLastCharacter,table=3 path=\"D:\\\\\"", point.getTimestamp()), point.toString());
+   }
+
    private static String tsString(final String str, final long timestamp) {
       return str + " " + timestamp + "\n";
    }
