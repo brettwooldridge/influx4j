@@ -911,7 +911,7 @@ public class Point implements AutoCloseable {
          if (lastBytesIndex >= 0) {
             // Normally "\" does not need to be escaped, but if it comes last
             // then escaping it is necessary to avoid escaping the quote
-            if (bytes[lastBytesIndex] == '\\') {
+            if (bytes[lastBytesIndex] == '\\' || bytes[lastBytesIndex] == '"') {
                buffer.put((byte) '\\');
             }
             buffer.put(bytes[lastBytesIndex]);

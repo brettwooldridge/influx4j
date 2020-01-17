@@ -131,13 +131,22 @@ public class PointTest {
    }
 
    @Test
-   public void testEscapeBackslashWhenIsLastCharacter() throws Exception {
+   public void testEscapeFieldValue() throws Exception {
+      // For field values:
+      // - Backslash does not need to be escaped except if it comes last
+      // - Double quote does always need to be escaped 
       final Point point = pointFactory.createPoint("testEscapeLastCharacter")
          .tag("table", "3")
-         .field("path", "D:節\\")
+         .field("path", "D:\\documents\\節\\")
+         .field("text", "TextWithDoubleQuotes(\")AtTheEnd\"")
          .timestamp();
 
-      Assert.assertEquals(tsString("testEscapeLastCharacter,table=3 path=\"D:節\\\\\"", point.getTimestamp()), point.toString());
+      final String expectedPathAndText = String.format("path=\"%s\",text=\"%s\"",
+            "D:\\documents\\節\\\\",
+            "TextWithDoubleQuotes(\\\")AtTheEnd\\\""
+      );
+      
+      Assert.assertEquals(tsString("testEscapeLastCharacter,table=3 " + expectedPathAndText, point.getTimestamp()), point.toString());
    }
 
    private static String tsString(final String str, final long timestamp) {
