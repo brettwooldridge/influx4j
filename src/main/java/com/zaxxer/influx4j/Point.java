@@ -848,7 +848,7 @@ public class Point implements AutoCloseable {
    }
 
    private static void escapeFieldValue(final ByteBuffer buffer, final String value) {
-      escapeDoubleQuote(value, buffer);
+      escapeDoubleQuoteAndBackslashIfLast(value, buffer);
    }
 
    private static void escapeCommaSpace(final ByteBuffer buffer, final String string) {
@@ -896,14 +896,25 @@ public class Point implements AutoCloseable {
       }
    }
 
-   private static void escapeDoubleQuote(final String string, final ByteBuffer buffer) {
-      if (string.indexOf('"') != -1) {
+   private static void escapeDoubleQuoteAndBackslashIfLast(final String string, final ByteBuffer buffer) {
+      if (!string.isEmpty() &&
+         (string.indexOf('"') != -1 || string.charAt(string.length() - 1) == '\\')) {
          final byte[] bytes = string.getBytes();
-         for (int i = 0; i < bytes.length; i++) {
+         final int lastBytesIndex = bytes.length - 1;
+         for (int i = 0; i < lastBytesIndex; i++) {
             if (bytes[i] == '"') {
                buffer.put((byte) '\\');
             }
             buffer.put(bytes[i]);
+         }
+
+         if (lastBytesIndex >= 0) {
+            // Normally "\" does not need to be escaped, but if it comes last
+            // then escaping it is necessary to avoid escaping the quote
+            if (bytes[lastBytesIndex] == '\\' || bytes[lastBytesIndex] == '"') {
+               buffer.put((byte) '\\');
+            }
+            buffer.put(bytes[lastBytesIndex]);
          }
       }
       else {
