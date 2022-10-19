@@ -134,7 +134,7 @@ public class PointTest {
    public void testEscapeFieldValue() throws Exception {
       // For field values:
       // - Backslash does not need to be escaped except if it comes last
-      // - Double quote does always need to be escaped 
+      // - Double quote does always need to be escaped
       final Point point = pointFactory.createPoint("testEscapeLastCharacter")
          .tag("table", "3")
          .field("path", "D:\\documents\\節\\")
@@ -145,8 +145,43 @@ public class PointTest {
             "D:\\documents\\節\\\\",
             "TextWithDoubleQuotes(\\\")AtTheEnd\\\""
       );
-      
+
       Assert.assertEquals(tsString("testEscapeLastCharacter,table=3 " + expectedPathAndText, point.getTimestamp()), point.toString());
+   }
+
+   @Test
+   public void testPreviousFieldsNotAccessibleAfterClose(){
+      PointFactory customPointFactory = PointFactory.builder()
+         .initialSize(1)
+         .maximumSize(1)
+         .build();
+      final Point pointOld = customPointFactory.createPoint("testPreviousFieldsNotAccessibleAfterClose")
+         .tag("testTag", "tag-value")
+         .field("string-field1", "fieldValue")
+         .field("string-field2", "fieldValue2")
+         .field("long-field1", 4L)
+         .field("long-field2", 8L)
+         .field("double-field",15.16)
+         .field("double-field2",23.42)
+         .field("bool-field1",true)
+         .field("bool-field2",true)
+         .timestamp();
+
+      pointOld.close();
+
+      final Point point = customPointFactory.createPoint("testPreviousFieldsNotAccessibleAfterClose")
+         .tag("testTag", "tag-value")
+         .field("string-field", "newValue")
+         .field("long-field", 314L)
+         .field("double-field",15.16)
+         .field("bool-field",false)
+         .timestamp();
+
+      // old points field names should not be accessible when the point is reused
+      Assert.assertNull("`string-field2` name should be null",point.stringFieldName(1));
+      Assert.assertNull("`long-field2` name should be null",point.longFieldName(1));
+      Assert.assertNull("`double-field2` name should be null",point.doubleFieldName(1));
+      Assert.assertNull("`bool-field2` name should be null",point.booleanFieldName(1));
    }
 
    private static String tsString(final String str, final long timestamp) {

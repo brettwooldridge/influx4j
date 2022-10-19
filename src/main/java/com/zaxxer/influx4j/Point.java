@@ -253,7 +253,7 @@ public class Point implements AutoCloseable {
     * @return the name of the long integer field or {@code null}
     */
    public String longFieldName(final int index) {
-      return (longFieldIndex > 0) ? longFields[index].name() : null;
+      return (index < longFieldIndex) ? longFields[index].name() : null;
    }
 
    /**
@@ -289,7 +289,7 @@ public class Point implements AutoCloseable {
     * @return the name of the double field or {@code null}
     */
     public String doubleFieldName(final int index) {
-      return (doubleFieldIndex > 0) ? doubleFields[index].name() : null;
+      return (index < doubleFieldIndex) ? doubleFields[index].name() : null;
    }
 
    /**
@@ -325,7 +325,7 @@ public class Point implements AutoCloseable {
     * @return the name of the boolean field or {@code null}
     */
     public String booleanFieldName(final int index) {
-      return (booleanFieldIndex > 0) ? boolFields[index].name() : null;
+      return (index < booleanFieldIndex) ? boolFields[index].name() : null;
    }
 
    /**
@@ -360,7 +360,7 @@ public class Point implements AutoCloseable {
     * @return the name of the string field or {@code null}
     */
     public String stringFieldName(final int index) {
-      return (stringFieldIndex > 0) ? stringFields[index].name() : null;
+      return (index < stringFieldIndex) ? stringFields[index].name() : null;
    }
 
    /**
